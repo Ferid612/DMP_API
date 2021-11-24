@@ -1,0 +1,18 @@
+List of sources:
+[3.1]              27            Manufacture names match
+[4]                25            Only descriptions are similar
+[1.1.1]             2            Material/Services numbers and Manufacture part numbers match      (apple to apple)
+[2.1.1]             2            Manufacture part numbers and manufacture names match  (apple to apple)
+[1.1.3]             1            Material/Services numbers match but Manufacture part numbers don't match
+
+
+
+Number of total founded items: 57
+
+
+Total number of items that Matched apple to apple: 5
+
+
+Total number of items that Matched partially: 52
+
+
