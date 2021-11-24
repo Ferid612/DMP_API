@@ -19,14 +19,14 @@ def get_engine(user, passwd, host, port, db):
     url = f"postgresql://{user}:{passwd}@{host}:{port}/{db}"
     if not database_exists(url):
         create_database(url)
-    engine = create_engine(url, pool_size=50, echo=False)
+    engine = create_engine(url, pool_size=50, echo=True)
     return engine
 
 
 
-DATABASE_SERVER =  'localhost'
-DATABASE_NAME ='db_dmp'
-DATABASE_USER= 'postgres'
+DATABASE_SERVER =  'dmp-postgresql-server.postgres.database.azure.com'
+DATABASE_NAME ='dmp-postgresql-server'
+DATABASE_USER= 'dmpadmin@dmp-postgresql-server'
 DATABASE_PASSWORD= 'Farid612'
 DATABASE_PORT= '5432'
 TENANT_ID = ""
