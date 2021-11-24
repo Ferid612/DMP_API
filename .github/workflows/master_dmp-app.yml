@@ -32,6 +32,13 @@ jobs:
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-app
+          path: |
+            . 
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -53,4 +60,4 @@ jobs:
         with:
           app-name: 'dmp-app'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_ABEAEDE833D84422B9148C31A53E73A6 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_692CE74764324575B87B64AB00127D0E }}
