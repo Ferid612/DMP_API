@@ -60,4 +60,4 @@ jobs:
         with:
           app-name: 'dmp-app'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_ABEAEDE833D84422B9148C31A53E73A6 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FA1D5E92860F4DCD913B3F78D2A4D45A }}
