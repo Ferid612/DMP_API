@@ -17,7 +17,8 @@ from .helpers_2 import *
 from DMP_API.settings import engine
 from sqlalchemy.orm import Session
 from .models import DMP_USERS
-
+import traceback
+import logging
 
 class DMP:
     plot_bg='rgba(255, 255,255, 0.8)'
@@ -103,118 +104,130 @@ class DMP:
     @csrf_exempt
     def searching(request):
         if request.method =='POST':
-            user_type=check_user_status(request)    
-            if user_type != 'not_user':
-                #* get all input data in inputs
-                DMP.input_region_name = request.POST.get('region')  
-                DMP.input_material_id = request.POST.get('material')  
-                DMP.input_description = request.POST.get('description')  
-                DMP.input_manufacturer_part_number = request.POST.get('manufactureId')
-                DMP.input_manufacturer_name = request.POST.get('manufacture')  
-                DMP.input_material_quantity= request.POST.get('material_quantity')
-                DMP.input_unit_of_measure = request.POST.get('unit_of_meas')
+            try: 
+                user_type=check_user_status(request)    
+                if user_type != 'not_user':
+                    #* get all input data in inputs
+                    DMP.input_region_name = request.POST.get('region')  
+                    DMP.input_material_id = request.POST.get('material')  
+                    DMP.input_description = request.POST.get('description')  
+                    DMP.input_manufacturer_part_number = request.POST.get('manufactureId')
+                    DMP.input_manufacturer_name = request.POST.get('manufacture')  
+                    DMP.input_material_quantity= request.POST.get('material_quantity')
+                    DMP.input_unit_of_measure = request.POST.get('unit_of_meas')
 
-                DMP.input_vendor_names = request.POST.getlist('vendor_names[]')
-                DMP.input_proposed_prices= request.POST.getlist('proposed_prices[]')
-                DMP.input_currencies = request.POST.getlist('currencies[]')
-                DMP.input_incoterm_names = request.POST.getlist('incoterms[]')
+                    DMP.input_vendor_names = request.POST.getlist('vendor_names[]')
+                    DMP.input_proposed_prices= request.POST.getlist('proposed_prices[]')
+                    DMP.input_currencies = request.POST.getlist('currencies[]')
+                    DMP.input_incoterm_names = request.POST.getlist('incoterms[]')
 
-                # upload_historical_data=DMP.uploaded_historical_data
-                df = DMP.uploaded_historical_data
+                    # upload_historical_data=DMP.uploaded_historical_data
+                    df = DMP.uploaded_historical_data
 
-                processed_df = preprocess_search_data(df, DMP.input_region_name)
-                DMP.df_org = processed_df.copy()
-                all_dataframes_from_searching = main_searching_algoritm(DMP.input_material_id, DMP.input_description, DMP.input_manufacturer_part_number, DMP.input_manufacturer_name, processed_df)
-                DMP.all_dataframes_from_searching = all_dataframes_from_searching
+                    processed_df = preprocess_search_data(df, DMP.input_region_name)
+                    DMP.df_org = processed_df.copy()
+                    all_dataframes_from_searching = main_searching_algoritm(DMP.input_material_id, DMP.input_description, DMP.input_manufacturer_part_number, DMP.input_manufacturer_name, processed_df)
+                    DMP.all_dataframes_from_searching = all_dataframes_from_searching
 
-                
-                DMP.all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
-                DMP.result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])
-                DMP.result_data_app_copy = DMP.result_data_app.copy()
-                DMP.result_data_all = pd.DataFrame(all_dataframes_from_searching['result_data_all'])
-                DMP.result_content = all_dataframes_from_searching['result_content']
+                    
+                    DMP.all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
+                    DMP.result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])
+                    DMP.result_data_app_copy = DMP.result_data_app.copy()
+                    DMP.result_data_all = pd.DataFrame(all_dataframes_from_searching['result_data_all'])
+                    DMP.result_content = all_dataframes_from_searching['result_content']
 
-                DMP.proposed_prices = DMP.convert_usd(DMP.input_proposed_prices, DMP.input_currencies)
-                # get most similar vendor name
-                vendor_names_all_dataframe = DMP.all_dataframe['Vendor Name'].value_counts().index.tolist()
-                input_vendor_names_fuzzy=[]
-                for a in DMP.input_vendor_names:
-                    if a not in vendor_names_all_dataframe:  
-                        fuzzy_score = []
-                        for vendor in vendor_names_all_dataframe:
-                            lst_vendor = list(vendor.upper().replace(' ',''))
-                            lst_a = list(a.replace(' ',''))
-                            s1 = fuzz.partial_ratio(lst_vendor, lst_a)
-                            fuzzy_score.append(s1)
+                    DMP.proposed_prices = DMP.convert_usd(DMP.input_proposed_prices, DMP.input_currencies)
+                    # get most similar vendor name
+                    vendor_names_all_dataframe = DMP.all_dataframe['Vendor Name'].value_counts().index.tolist()
+                    input_vendor_names_fuzzy=[]
+                    for a in DMP.input_vendor_names:
+                        if a not in vendor_names_all_dataframe:  
+                            fuzzy_score = []
+                            for vendor in vendor_names_all_dataframe:
+                                lst_vendor = list(vendor.upper().replace(' ',''))
+                                lst_a = list(a.replace(' ',''))
+                                s1 = fuzz.partial_ratio(lst_vendor, lst_a)
+                                fuzzy_score.append(s1)
 
-                        max_score = max(fuzzy_score)
-                        max_score_index = fuzzy_score.index(max_score)
-                        result_vendor = vendor_names_all_dataframe[max_score_index]
+                            max_score = max(fuzzy_score)
+                            max_score_index = fuzzy_score.index(max_score)
+                            result_vendor = vendor_names_all_dataframe[max_score_index]
 
-                        if max_score >= 0.6:
-                            input_vendor_names_fuzzy.append(result_vendor)
+                            if max_score >= 0.6:
+                                input_vendor_names_fuzzy.append(result_vendor)
 
-                    else:
-                        input_vendor_names_fuzzy.append(a)
+                        else:
+                            input_vendor_names_fuzzy.append(a)
 
-                DMP.input_vendor_names = input_vendor_names_fuzzy   # vendor names
+                    DMP.input_vendor_names = input_vendor_names_fuzzy   # vendor names
 
 
-                if DMP.result_data_all.shape[0]>0:
-                    DMP.app_unit_of_measure = ['ALL', 'EA', 'PH']
-                    if DMP.result_data_app.shape[0]>0:
-                        for i in DMP.result_data_app['PO Item Quantity Unit'].value_counts().index.tolist():
-                            DMP.app_unit_of_measure.append(i)
+                    if DMP.result_data_all.shape[0]>0:
+                        DMP.app_unit_of_measure = ['ALL', 'EA', 'PH']
+                        if DMP.result_data_app.shape[0]>0:
+                            for i in DMP.result_data_app['PO Item Quantity Unit'].value_counts().index.tolist():
+                                DMP.app_unit_of_measure.append(i)
 
-                        df_item = DMP.result_data_app.drop_duplicates(['Material/Service No.'])
+                            df_item = DMP.result_data_app.drop_duplicates(['Material/Service No.'])
+                            
+                            DMP.categories_in_result = DMP.result_data_app['Product Category Description'].value_counts().index.tolist()
+                            DMP.item_numbers_in_result = DMP.result_data_app['Material/Service No.'].value_counts().index.tolist()
+                            DMP.short_desc_in_result = DMP.result_data_app['PO Item Description'].value_counts().index.tolist()
+                            DMP.new_manufacturer_name = [df_item['Manufacturer Name'].value_counts().index.tolist()[0]]
+                                    
+                            data_list=[]
+                            data_list.append(DMP.item_numbers_in_result)
+                            data_list.append(DMP.short_desc_in_result)
+                            DMP.data_list=data_list
                         
-                        DMP.categories_in_result = DMP.result_data_app['Product Category Description'].value_counts().index.tolist()
-                        DMP.item_numbers_in_result = DMP.result_data_app['Material/Service No.'].value_counts().index.tolist()
-                        DMP.short_desc_in_result = DMP.result_data_app['PO Item Description'].value_counts().index.tolist()
-                        DMP.new_manufacturer_name = [df_item['Manufacturer Name'].value_counts().index.tolist()[0]]
-                                
-                        data_list=[]
-                        data_list.append(DMP.item_numbers_in_result)
-                        data_list.append(DMP.short_desc_in_result)
-                        DMP.data_list=data_list
+                        DMP.apple_to_apple_count = DMP.result_data_app.shape[0]  
+                        DMP.result_count = DMP.result_data_all.shape[0]    
+                        #***************** for visual data and filters *****************
                     
-                    DMP.apple_to_apple_count = DMP.result_data_app.shape[0]  
-                    DMP.result_count = DMP.result_data_all.shape[0]    
-                    #***************** for visual data and filters *****************
-                
 
-                    all_headers=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","Vendor Name","PO Item Description","Manufacturer Name",
-                    "Manufacturer Part No.","Long Description","PO Item Creation Date","PO Item Value (GC)","PO Item Value (GC) Unit", "PO Item Quantity Unit", "Unit Price","Converted Price", "score","path",
-                    "desc","Select","desc_words_short", "desc_words_long"]
-                    
-                    DMP.all_headers=all_headers
-
-                    json_records_all=DMP.result_data_all.to_json(orient='records')
-                    DMP.result_data_all_json=json.loads(json_records_all)
-                    
-                    json_records_app=DMP.result_data_app.to_json(orient='records')
-                    DMP.result_data_app_json=json.loads(json_records_app)
-
-                    response = JsonResponse({
-                            'result_data_all':  DMP.result_data_all_json,
-                            'result_app_to_app':  DMP.result_data_app_json,
-                            'user_input_desc': all_dataframes_from_searching['user_input_desc'],
-                            'all_headers': all_headers,
-                            'display_converted_uom':all_dataframes_from_searching['display_converted_uom'],
-                            'apple_to_apple_count':DMP.apple_to_apple_count,
-                        })
+                        all_headers=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","Vendor Name","PO Item Description","Manufacturer Name",
+                        "Manufacturer Part No.","Long Description","PO Item Creation Date","PO Item Value (GC)","PO Item Value (GC) Unit", "PO Item Quantity Unit", "Unit Price","Converted Price", "score","path",
+                        "desc","Select","desc_words_short", "desc_words_long"]
                         
-                    add_get_params(response)
-                    return response
-                else:
-                    response = JsonResponse({
-                            'result_data_all':  "space data",
-                            'user_input_desc':"space data",
-                            'all_headers':"space data",
-                            'apple_to_apple_count':"0",
+                        DMP.all_headers=all_headers
+
+                        json_records_all=DMP.result_data_all.to_json(orient='records')
+                        DMP.result_data_all_json=json.loads(json_records_all)
+                        
+                        json_records_app=DMP.result_data_app.to_json(orient='records')
+                        DMP.result_data_app_json=json.loads(json_records_app)
+
+                        response = JsonResponse({
+                                'result_data_all':  DMP.result_data_all_json,
+                                'result_app_to_app':  DMP.result_data_app_json,
+                                'user_input_desc': all_dataframes_from_searching['user_input_desc'],
+                                'all_headers': all_headers,
+                                'display_converted_uom':all_dataframes_from_searching['display_converted_uom'],
+                                'apple_to_apple_count':DMP.apple_to_apple_count,
                             })
-                    add_get_params(response)
-                    return response
+                            
+                        add_get_params(response)
+                        return response
+                    else:
+                        response = JsonResponse({
+                                'result_data_all':  "space data",
+                                'user_input_desc':"space data",
+                                'all_headers':"space data",
+                                'apple_to_apple_count':"0",
+                                })
+                        add_get_params(response)
+                        return response
+            except Exception as e:
+                my_traceback = traceback.format_exc()
+             
+                logging.error(my_traceback)
+                response = JsonResponse({'error_text':str(e),
+                                         'error_text_2':my_traceback
+                                         })
+                response.status_code = 505
+                
+                add_get_params(response)
+                return response 
                 
             else:
                 response = JsonResponse({'error_text':"You have not access"})
