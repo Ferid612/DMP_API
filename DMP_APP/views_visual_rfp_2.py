@@ -32,7 +32,7 @@ class DMP_RFP_2(DMP_RFP):
 
         DMP_RFP_2.plot_bg='rgba(171, 248, 190, 0.8)'
         if user == "Farid":
-            df = pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
+            df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
         else:
             df = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
@@ -80,7 +80,7 @@ class DMP_RFP_2(DMP_RFP):
 
         temp_df = df[df['Vendor Name'] == rfp_vendor_name].copy()
         if user == "Farid":
-            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021.csv")
+            a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
         else:
             a2a = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\A2A_28_08_2021.csv')
         print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 0', temp_df.shape)
@@ -177,7 +177,7 @@ class DMP_RFP_2(DMP_RFP):
         #             new_df.iat[index, new_df.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
         # new_df.iat[index, new_df.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
         if user ==  "Farid":
-            new_df.to_csv(str(BASE_DIR) + "\\static\\new_df_a2a.csv")
+            new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
         else:
             new_df.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a.csv')
 
@@ -187,14 +187,14 @@ class DMP_RFP_2(DMP_RFP):
         with Pool() as pool:
             a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
         if user == "Farid":
-            a2a_conv.to_csv(str(BASE_DIR) + "\\static\\new_df_a2a_conv_new.csv")
+            a2a_conv.to_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
         else:
             a2a_conv.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_conv_new.csv')
 
         #!  ----------------------------------------- Normalization  End -----------------------------------------
 
         if user == "Farid":
-            new_df  = pd.read_csv(str(BASE_DIR) + "\\static\\new_df_a2a_conv_new.csv")
+            new_df  = pd.read_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
         else:
             new_df  = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_conv_new.csv')
         
@@ -223,7 +223,7 @@ class DMP_RFP_2(DMP_RFP):
         # new_df = new_df[mask]
         
         if user == "Farid":
-            new_df.to_csv(str(BASE_DIR) + "\\static\\new_df_a2a_new.csv")
+            new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a_new.csv")
         else:
             new_df.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_new.csv')
     
