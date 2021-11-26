@@ -8,6 +8,9 @@ import sys, os, urllib, adal, struct, time
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+print("BASEDIR:      ", BASE_DIR)
 SECRET_KEY = 'django-insecure-m%nw21a8@kgq+9s)2($agh=%%@i(!w5phvuakw@z4tfj*+pl3%'
 DEBUG = True
 ALLOWED_HOSTS = ['*']

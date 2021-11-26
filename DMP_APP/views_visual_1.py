@@ -41,8 +41,8 @@ class DMP:
                 
                     df=upload_file_helpers(request)
                     DMP.uploaded_historical_data = df
-                
-                    df.to_csv(r'static\uploaded_historical_data.csv',index = False)
+                   
+                    df.to_csv(str(BASE_DIR) + "\\static\\uploaded_historical_data.csv",index = False)
                     response = JsonResponse({'answerr': "Success", })
                 
                     add_get_params(response)

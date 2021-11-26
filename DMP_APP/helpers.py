@@ -6,7 +6,7 @@ from fuzzywuzzy import fuzz
 from .custom_logic import *
 from . import views_visual_1
 from django.views.decorators.csrf import csrf_exempt
-
+from DMP_API.settings import BASE_DIR
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -352,9 +352,9 @@ def get_curency_data():
 def parallel_uom(material_id, identifier):
     if user == "Farid":
         if identifier == 1:
-            a2a = pd.read_csv(r'static\A2A_28_08_2021.csv')
+            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021.csv")
         elif identifier == 2:
-            a2a = pd.read_csv(r'static\new_df_a2a.csv')
+            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\new_df_a2a.csv")
     else:
         if identifier == 1:
             a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
@@ -430,9 +430,9 @@ def normalize_1(in_data, types_of_UoM):
 
 def normalization_based_alternative_uom(in_data):
     if user == 'Farid':
-        alt_uom_df = pd.read_csv(r'static\1.csv', error_bad_lines=False, dtype="unicode")
+        alt_uom_df = pd.read_csv(str(BASE_DIR) + "\\static\\1.csv", error_bad_lines=False, dtype="unicode")
     else:
-        alt_uom_df = pd.read_csv(r'static\AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
+        alt_uom_df = pd.read_csv(str(BASE_DIR) + "\\static\\AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
 
     alt_uom_df.loc[alt_uom_df['AUn'] == 'PAC', 'AUn'] = 'PH'
     for material_id in in_data['Material/Service No.'].unique().tolist(): 

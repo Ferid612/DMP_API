@@ -15,6 +15,7 @@ import urllib
 import requests
 from datetime import date
 from search_alg_parallel_short import *
+from DMP_API.settings import BASE_DIR
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -70,7 +71,7 @@ def main():
     with Pool() as pool:
         result = pd.concat(pool.starmap(searching_algorithm, zip(a, b, c, d)))
     print(result.shape)
-    result.to_csv(r'static\A2A.csv')
+    result.to_csv(str(BASE_DIR) + "\\static\\A2A.csv")
 
 # Required for Windows:
 if __name__ == '__main__':    

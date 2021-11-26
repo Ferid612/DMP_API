@@ -1,7 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
 from .models import DMP_USERS,USER_SESSION
 from django.http import JsonResponse
-from DMP_API.settings import engine
+from DMP_API.settings import engine, BASE_DIR
 from sqlalchemy.orm import Session
 import  secrets
 

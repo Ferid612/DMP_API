@@ -13,7 +13,7 @@ import datetime
 import datetime as dt
 from .helpers import *
 from functools import reduce
-
+from DMP_API.settings import BASE_DIR
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -179,7 +179,7 @@ class DMP_RFP(DMP):
         c = pb_df['Manufacturer Part Number'].tolist()
         d = pb_df['Manufacturer Name'].tolist()
         if user ==  "Farid":
-            pb_df.to_csv(r'static\updated_pricebook.csv') 
+            pb_df.to_csv(str(BASE_DIR) + "\\static\\updated_pricebook.csv") 
         else:
             pb_df.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\updated_pricebook.csv', index=False) 
 
@@ -197,14 +197,14 @@ class DMP_RFP(DMP):
         print('DMP RFP UPLOADED HISTORICAL DATA SHAPE: ', DMP_RFP.uploaded_historical_data.shape)
 
         if user == "Farid":
-            DMP_RFP.uploaded_historical_data.to_csv(r'static\df_all_regions_uploaded.csv', index=False)
+            DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv", index=False)
         else: 
             DMP_RFP.uploaded_historical_data.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', index=False)
 
 
         print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
         if user == "Farid":
-            df = pd.read_csv(r'static\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+            df = pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
         else:
             df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',  error_bad_lines=False,  dtype={'PO Item Quantity': 'float64', 'PO Item Value (GC)': 'float64',})
         
@@ -220,13 +220,13 @@ class DMP_RFP(DMP):
         # print('Shape of dataframe: ', result.shape)
         
         # if user == "Farid":
-        #     result.to_csv(r'static\A2A_28_08_2021.csv')
-        # else:
-        #     result.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
+        #     result.to_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021.csv")
+        # else:"
+        #     result.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
 
         # main()        
         if user == "Farid":
-            a2a = pd.read_csv(r'static\A2A_28_08_2021.csv')
+            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021.csv")
         else:
             a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
 
@@ -288,14 +288,14 @@ class DMP_RFP(DMP):
         # ! ****************** start Region searching ******************
         df_full=""
         if user == "Farid" :
-            df_full= pd.read_csv(r'static\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+            df_full= pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
         
         else:
             df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
         
         DMP_RFP.df_full_region = df_full
         if user == "Farid":
-            a2a = pd.read_csv(r'static\A2A_28_08_2021_Region.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021_Region.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
         else:
             a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021_Region.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
 
@@ -325,7 +325,7 @@ class DMP_RFP(DMP):
         # Min and Max Date from dataset 
 
         if user == "Farid" :
-            df_full= pd.read_csv(r'static\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+            df_full= pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
         else:
             df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
             
@@ -481,7 +481,7 @@ class DMP_RFP(DMP):
   
 
                 if user == 'Farid':
-                    alt_uom_df = pd.read_csv(r'static\AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
+                    alt_uom_df = pd.read_csv(str(BASE_DIR) + "\\static\\AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
                 else:
                     alt_uom_df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
                 
@@ -662,7 +662,7 @@ class DMP_RFP(DMP):
         if request.method =='POST':
             # json_records_app=DMP_RFP.unique_increase_df.columns.to_json(orient='records')
             # increase_json=json.loads(json_records_app)    
-            # pricebook_table=pd.read_csv(r'static\unique_increase_df.csv', error_bad_lines=False, dtype="unicode")
+            # pricebook_table=pd.read_csv(str(BASE_DIR) + "\\static\\unique_increase_df.csv", error_bad_lines=False, dtype="unicode")
             unique_increase_df=DMP_RFP.unique_increase_df
             try:
               unique_increase_df.reset_index(inplace=True)
@@ -682,7 +682,7 @@ class DMP_RFP(DMP):
             
             df=json.loads(json_records_all)
 
-            # df=pd.read_csv(r'static\unique_increase_df.csv', error_bad_lines=False, dtype="unicode")
+            # df=pd.read_csv(str(BASE_DIR) + "\\static\\unique_increase_df.csv', error_bad_lines=False, dtype="unicode")
          
             response = JsonResponse({
                  'discount_table': df,
@@ -716,7 +716,7 @@ class DMP_RFP(DMP):
         del pricebook_table['index']
     
 
-        pricebook_table.to_csv(r'static\discount.csv',index=False)
+        pricebook_table.to_csv(str(BASE_DIR) + "\\static\\discount.csv",index=False)
 
         response = JsonResponse({
                     'pricebook_columns':"pricebook_columns",
@@ -727,7 +727,7 @@ class DMP_RFP(DMP):
 
     def get_searching_data():
         if user == "Farid":
-            df = pd.read_csv(r'static\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+            df = pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
         else:
             df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
         
@@ -2020,7 +2020,7 @@ class DMP_RFP(DMP):
 
         #!  ------------------------- START  Evaluation for non-pricebook items -------------------------
         if user == "Farid":
-            df = pd.read_csv(r'static\df_all_regions_new.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+            df = pd.read_csv(str(BASE_DIR) + "\\static\\df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
         else:
             df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
@@ -2041,9 +2041,9 @@ class DMP_RFP(DMP):
 
         temp_df = df[(df['Vendor Name'].str.lower() == DMP_RFP.rfp_vendor_name.lower())].copy()
         if user == "Farid":
-            a2a = pd.read_csv(r'static\A2A_28_08_2021.csv')
+            a2a = pd.read_csv(str(BASE_DIR) + "\\static\\A2A_28_08_2021.csv")
         else:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
+            a2a = pd.read_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
 
         new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
         # # Step - 1  (material id: yes   |   part number: yes)
@@ -2168,7 +2168,7 @@ class DMP_RFP(DMP):
         unique_increase_df = unique_increase_df.append(increase_df_23)
         
         if user ==  "Farid":
-            unique_increase_df.to_csv(r'static\unique_increase_df.csv')
+            unique_increase_df.to_csv(str(BASE_DIR) + "\\static\\unique_increase_df.csv")
         else:
             unique_increase_df.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\unique_increase_df_new.csv')
             increase_df_23.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\increase_df_23_new.csv')            

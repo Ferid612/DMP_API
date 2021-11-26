@@ -13,7 +13,7 @@ class DMP_pricessbook:
         pricebook_name=request.POST.get('pricebook_name')
         print("pricebook_name: ",pricebook_name)
         if user == "Farid":
-            pricebook_table = pd.read_csv(r'static\4410014947_price_book.csv',error_bad_lines=False, dtype="unicode",  index_col=False)
+            pricebook_table = pd.read_csv(str(BASE_DIR) + "\\static\\4410014947_price_book.csv",error_bad_lines=False, dtype="unicode",  index_col=False)
         else:
             pricebook_table = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\4410014947_price_book.csv',error_bad_lines=False, dtype="unicode",  index_col=False)
     
@@ -85,7 +85,7 @@ class DMP_pricessbook:
         pricebook_table.rename(columns={'Proposed Price':'2021 rates'},inplace=True)
         if user == "Farid":
 
-            pricebook_table.to_csv(r'static\4410014947_price_book.csv',index=False)
+            pricebook_table.to_csv(str(BASE_DIR) + "\\static\\4410014947_price_book.csv",index=False)
         else:
             pricebook_table.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\4410014947_price_book_2.csv',index=False)
 
