@@ -33,24 +33,36 @@ class DMP:
     def upload_file_historical(request): 
         # Build the POST parameters
         if request.method == 'POST':
-            
-            #*cheking user status
-            user_type=check_user_status(request)  
-            if user_type =='customer':
-            
-                df=upload_file_helpers(request)
-                DMP.uploaded_historical_data = df
-            
-                df.to_csv('uploaded_historical_data.csv',index = False)
-                response = JsonResponse({'answerr': "Success", })
-            
+            try:
+                    
+                #*cheking user status
+                # user_type=check_user_status(request)  
+                if 'customer' == 'customer':
+                
+                    df=upload_file_helpers(request)
+                    DMP.uploaded_historical_data = df
+                
+                    df.to_csv(r'static\uploaded_historical_data.csv',index = False)
+                    response = JsonResponse({'answerr': "Success", })
+                
+                    add_get_params(response)
+                    return response
+                else:
+                    response = JsonResponse({'Answer': "You have have not access to this query.", })
+                    response.status_code=501
+                    add_get_params(response)
+                    return response
+            except Exception as e:
+                my_traceback = traceback.format_exc()
+             
+                logging.error(my_traceback)
+                response = JsonResponse({'error_text':str(e),
+                                         'error_text_2':my_traceback
+                                         })
+                response.status_code = 505
+                
                 add_get_params(response)
-                return response
-            else:
-                response = JsonResponse({'Answer': "You have have not access to this query.", })
-                response.status_code=501
-                add_get_params(response)
-                return response
+                return response 
         else:
             response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
             add_get_params(response)

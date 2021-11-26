@@ -70,7 +70,7 @@ def main():
     with Pool() as pool:
         result = pd.concat(pool.starmap(searching_algorithm, zip(a, b, c, d)))
     print(result.shape)
-    result.to_csv('A2A.csv')
+    result.to_csv(r'static\A2A.csv')
 
 # Required for Windows:
 if __name__ == '__main__':    
