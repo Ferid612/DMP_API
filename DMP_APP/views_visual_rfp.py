@@ -103,409 +103,429 @@ class DMP_RFP(DMP):
 
     @csrf_exempt
     def search_rfp_new(request):
-        
-        #! for region section
-        currency_content = get_curency_data()
-        currency = str(DMP_RFP.rfp_currency_name)
-        currency_ratio = currency_content['USD' + currency]
-        rfp_region_name = str(DMP_RFP.rfp_region_name)
-        # Read uploaded pricebook data        
-        pb_df= DMP_RFP.uploaded_rfp_file
-
-        #! Automatically change column names if needed
-        # START
         try:
-            del pb_df['Unnamed: 0']
-        except:
-            pass
+            #! for region section
+            currency_content = get_curency_data()
+            currency = str(DMP_RFP.rfp_currency_name)
+            currency_ratio = currency_content['USD' + currency]
+            rfp_region_name = str(DMP_RFP.rfp_region_name)
+            # Read uploaded pricebook data        
+            pb_df= DMP_RFP.uploaded_rfp_file
 
-        all_columns = ['BP Material / \nService Master No.', 'Supplier Part No. / Reference', 'BP Long Description', 'Manufacturer Name',
-                    'Manufacturer Part Number', 'BP Short Description',  'Supplier Description', 'Incoterms Key', '2021 rates', '2020 rates', 'UOM']
+            #! Automatically change column names if needed
+            # START
+            try:
+                del pb_df['Unnamed: 0']
+            except:
+                pass
 
-        columns = pb_df.columns.tolist()
+            all_columns = ['BP Material / \nService Master No.', 'Supplier Part No. / Reference', 'BP Long Description', 'Manufacturer Name',
+                        'Manufacturer Part Number', 'BP Short Description',  'Supplier Description', 'Incoterms Key', '2021 rates', '2020 rates', 'UOM']
 
-        for in_column in columns:
-            sim_scores = []
-            for column_base in all_columns:
-                score = fuzz.ratio(column_base, in_column)
-                sim_scores.append(score)
+            columns = pb_df.columns.tolist()
+
+            for in_column in columns:
+                sim_scores = []
+                for column_base in all_columns:
+                    score = fuzz.ratio(column_base, in_column)
+                    sim_scores.append(score)
+                
+                max_score = max(sim_scores)
+                max_score_index = sim_scores.index(max_score)
+                result_column = all_columns[max_score_index]
+
+                if max_score > 80:
+                    pb_df.rename(columns={in_column: result_column }, inplace=True)
+                else:
+                    print(CRED + 'The column name "' + in_column  + '" is not in base columns list'   + CEND)
+                            
+            # def is_float(x):
+            #     try:
+            #         float(x)
+            #     except ValueError:
+            #         return False
+            #     return True
+
+            #! Preprocess raw data
+            pb_df = pb_df[all_columns]
+            pb_df['Incoterms Key'] = 'FCA'
+            pb_df.dropna(subset=['2021 rates'], inplace=True)
+            pb_df.dropna(subset=['2020 rates'], inplace=True)
+
+            pb_df = pb_df[pb_df['2021 rates'].apply(lambda x: is_float(x))]
+            pb_df = pb_df[pb_df['2020 rates'].apply(lambda x: is_float(x))]
+            pb_df['2021 rates'] = pb_df['2021 rates'].astype('float')
+            pb_df['2020 rates'] = pb_df['2020 rates'].astype('float')
+
+            pb_df = pb_df[(pb_df['2021 rates'] > 0) & (pb_df['2020 rates'] > 0)]
+
+            pb_df['Manufacturer Name'] = pb_df['Manufacturer Name'].replace(np.nan, ' ', regex=True) 
+            pb_df['Manufacturer Part Number'] = pb_df['Manufacturer Part Number'].replace(np.nan, ' ', regex=True)    
+            pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].astype('str')
+            pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].apply(lambda x: str(x)[:-2])
             
-            max_score = max(sim_scores)
-            max_score_index = sim_scores.index(max_score)
-            result_column = all_columns[max_score_index]
 
-            if max_score > 80:
-                pb_df.rename(columns={in_column: result_column }, inplace=True)
+            current_date = datetime.date.today().strftime('%Y-%m-%d')
+            pb_df['PO Item Creation Date'] = '2021-08-06'
+            pb_df['PO Item Creation Date'] = pd.DatetimeIndex(pb_df['PO Item Creation Date'])
+            pb_df.loc[pb_df['BP Material / \nService Master No.'] == 'n', 'BP Material / \nService Master No.'] = pb_df[pb_df['BP Material / \nService Master No.'] == 'n'].index
+            pb_df['BP Material / \nService Master No.'] =  pb_df['BP Material / \nService Master No.'].astype('str')
+            pb_df['2021 rates'] = pb_df['2021 rates'] / currency_ratio 
+            pb_df['2020 rates'] = pb_df['2020 rates'] / currency_ratio 
+            
+            DMP.new_pb_df = pb_df
+            a = pb_df['BP Material / \nService Master No.'].tolist()
+            b = pb_df['Supplier Description'].tolist()
+            c = pb_df['Manufacturer Part Number'].tolist()
+            d = pb_df['Manufacturer Name'].tolist()
+            if user ==  "Farid":
+                pb_df.to_csv(str(BASE_DIR) + "/static/updated_pricebook.csv") 
             else:
-                print(CRED + 'The column name "' + in_column  + '" is not in base columns list'   + CEND)
-                        
-        # def is_float(x):
-        #     try:
-        #         float(x)
-        #     except ValueError:
-        #         return False
-        #     return True
+                pb_df.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\updated_pricebook.csv', index=False) 
 
-        #! Preprocess raw data
-        pb_df = pb_df[all_columns]
-        pb_df['Incoterms Key'] = 'FCA'
-        pb_df.dropna(subset=['2021 rates'], inplace=True)
-        pb_df.dropna(subset=['2020 rates'], inplace=True)
+            # from concurrent.futures import ProcessPoolExecutor
+            from multiprocessing import Pool
 
-        pb_df = pb_df[pb_df['2021 rates'].apply(lambda x: is_float(x))]
-        pb_df = pb_df[pb_df['2020 rates'].apply(lambda x: is_float(x))]
-        pb_df['2021 rates'] = pb_df['2021 rates'].astype('float')
-        pb_df['2020 rates'] = pb_df['2020 rates'].astype('float')
 
-        pb_df = pb_df[(pb_df['2021 rates'] > 0) & (pb_df['2020 rates'] > 0)]
+            tic = time.time()
 
-        pb_df['Manufacturer Name'] = pb_df['Manufacturer Name'].replace(np.nan, ' ', regex=True) 
-        pb_df['Manufacturer Part Number'] = pb_df['Manufacturer Part Number'].replace(np.nan, ' ', regex=True)    
-        pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].astype('str')
-        pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].apply(lambda x: str(x)[:-2])
+            # def main():
+            # dmp_rfp_2 = DMP_RFP.DMP_RFP_2()
+            # df = preprocess_search_data(df, 'AGT')
+            # DMP_RFP.search_df = df
+            # print("ppppppppppp",DMP_RFP.search_df.shape)
+            print('DMP RFP UPLOADED HISTORICAL DATA SHAPE: ', DMP_RFP.uploaded_historical_data.shape)
+
+            if user == "Farid":
+                DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", index=False)
+            else: 
+                DMP_RFP.uploaded_historical_data.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', index=False)
+
+
+            print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
+            if user == "Farid":
+                df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
+            else:
+                df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',  error_bad_lines=False,  dtype={'PO Item Quantity': 'float64', 'PO Item Value (GC)': 'float64',})
+            
+            reload(search_alg_parallel)
+            # importlib.reload(sys.modules['search_alg_parallel'])
+            # module = importlib.import_module(search_alg_parallel.__module__)
+            # print('Modules: ',sys.modules)
+
+            with Pool() as pool:
+                result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
+            result = result[~result.index.duplicated(keep='first')]
+            # result['base_index'] = result.index
+            print('Shape of dataframe: ', result.shape)
+            
+            if user == "Farid":
+                result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
+            else:
+                result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
+
+            # main()        
+            if user == "Farid":
+                a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
+            else:
+                a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
+
+            a2a['PO Item Creation Date'] = pd.DatetimeIndex(a2a['PO Item Creation Date'])
+            a2a = a2a[a2a['PO Item Creation Date'] >= '2018-01-01']
+            # a2a = a2a[a2a['PO Status Name'] != 'Held']
+            types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 0.00459, 'LB': 2.204},
+                            'Area':    {'M2': 1, 'JO': 0.617},
+                            'Length':  {'M': 1, 'FT': 3.28, 'LN': 1, 'LS': 1, 'IN': 39.37, 'KM': 0.001, 'ROL': 1, 'FOT': 3.28},
+                            'Volume':  {'L': 1, 'DR': 0.0048, 'GAL': 0.264, 'M3': 0.001, 'PL': 1, 'ML': 1000, 'BTL': 1.333} }
+
+            for index, row in a2a.iterrows():
+                for key in types_of_UoM:
+                    a = types_of_UoM[key]
+                    if  row['PO Item Quantity Unit'] in a.keys():
+                        a2a.iat[index, a2a.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
+                        a2a.iat[index, a2a.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
+
+            try:
+                del a2a['Unnamed: 0']
+            except: 
+                pass
         
+            material_id_list = a2a['Material/Service No.'].value_counts().index.tolist()
+            identifier = [1 for i in range(len(material_id_list))]
+            with Pool() as pool:
+                a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
 
-        current_date = datetime.date.today().strftime('%Y-%m-%d')
-        pb_df['PO Item Creation Date'] = '2021-08-06'
-        pb_df['PO Item Creation Date'] = pd.DatetimeIndex(pb_df['PO Item Creation Date'])
-        pb_df.loc[pb_df['BP Material / \nService Master No.'] == 'n', 'BP Material / \nService Master No.'] = pb_df[pb_df['BP Material / \nService Master No.'] == 'n'].index
-        pb_df['BP Material / \nService Master No.'] =  pb_df['BP Material / \nService Master No.'].astype('str')
-        pb_df['2021 rates'] = pb_df['2021 rates'] / currency_ratio 
-        pb_df['2020 rates'] = pb_df['2020 rates'] / currency_ratio 
-        
-        DMP.new_pb_df = pb_df
-        a = pb_df['BP Material / \nService Master No.'].tolist()
-        b = pb_df['Supplier Description'].tolist()
-        c = pb_df['Manufacturer Part Number'].tolist()
-        d = pb_df['Manufacturer Name'].tolist()
-        if user ==  "Farid":
-            pb_df.to_csv(str(BASE_DIR) + "/static/updated_pricebook.csv") 
-        else:
-            pb_df.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\updated_pricebook.csv', index=False) 
-
-        # from concurrent.futures import ProcessPoolExecutor
-        from multiprocessing import Pool
+            display_converted_uom_rfp=True
+            if a2a_conv.shape[0] == a2a_conv[a2a_conv['Unit Price'] == a2a_conv['Converted Price']].shape[0] or a2a_conv.shape[0] == a2a_conv[a2a_conv['UoM_label'] == 1].shape[0]:
+                display_converted_uom_rfp=False
 
 
-        tic = time.time()
+            a2a_conv.reset_index(inplace=True)
+            a2a_conv['index'] = a2a_conv.index
+            
+            a2a_conv['index'] = a2a_conv.index
+            # if user == "Farid":
+            #     a2a_conv.to_csv('a2a_conv_new.csv', index=False)
+            # else:
+            #     a2a_conv.to_csv('a2a_conv_new.csv')
 
-        # def main():
-        # dmp_rfp_2 = DMP_RFP.DMP_RFP_2()
-        # df = preprocess_search_data(df, 'AGT')
-        # DMP_RFP.search_df = df
-        # print("ppppppppppp",DMP_RFP.search_df.shape)
-        print('DMP RFP UPLOADED HISTORICAL DATA SHAPE: ', DMP_RFP.uploaded_historical_data.shape)
-
-        if user == "Farid":
-            DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", index=False)
-        else: 
-            DMP_RFP.uploaded_historical_data.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', index=False)
+            DMP_RFP.a2a_conv = a2a_conv 
+            DMP_RFP.display_converted_uom_rfp=display_converted_uom_rfp 
 
 
-        print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
-        if user == "Farid":
-            df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
-        else:
-            df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',  error_bad_lines=False,  dtype={'PO Item Quantity': 'float64', 'PO Item Value (GC)': 'float64',})
-        
-        reload(search_alg_parallel)
-        # importlib.reload(sys.modules['search_alg_parallel'])
-        # module = importlib.import_module(search_alg_parallel.__module__)
-        # print('Modules: ',sys.modules)
+            toc = time.time()
 
-        with Pool() as pool:
-            result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
-        result = result[~result.index.duplicated(keep='first')]
-        # result['base_index'] = result.index
-        print('Shape of dataframe: ', result.shape)
-        
-        if user == "Farid":
-            result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-        else:
-            result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
-
-        # main()        
-        if user == "Farid":
-            a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-        else:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
-
-        a2a['PO Item Creation Date'] = pd.DatetimeIndex(a2a['PO Item Creation Date'])
-        a2a = a2a[a2a['PO Item Creation Date'] >= '2018-01-01']
-        # a2a = a2a[a2a['PO Status Name'] != 'Held']
-        types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 0.00459, 'LB': 2.204},
-                        'Area':    {'M2': 1, 'JO': 0.617},
-                        'Length':  {'M': 1, 'FT': 3.28, 'LN': 1, 'LS': 1, 'IN': 39.37, 'KM': 0.001, 'ROL': 1, 'FOT': 3.28},
-                        'Volume':  {'L': 1, 'DR': 0.0048, 'GAL': 0.264, 'M3': 0.001, 'PL': 1, 'ML': 1000, 'BTL': 1.333} }
-
-        for index, row in a2a.iterrows():
-            for key in types_of_UoM:
-                a = types_of_UoM[key]
-                if  row['PO Item Quantity Unit'] in a.keys():
-                    a2a.iat[index, a2a.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
-                    a2a.iat[index, a2a.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
-
-        try:
-            del a2a['Unnamed: 0']
-        except: 
-            pass
-       
-        material_id_list = a2a['Material/Service No.'].value_counts().index.tolist()
-        identifier = [1 for i in range(len(material_id_list))]
-        with Pool() as pool:
-            a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
-
-        display_converted_uom_rfp=True
-        if a2a_conv.shape[0] == a2a_conv[a2a_conv['Unit Price'] == a2a_conv['Converted Price']].shape[0] or a2a_conv.shape[0] == a2a_conv[a2a_conv['UoM_label'] == 1].shape[0]:
-            display_converted_uom_rfp=False
-
-
-        a2a_conv.reset_index(inplace=True)
-        a2a_conv['index'] = a2a_conv.index
-        
-        a2a_conv['index'] = a2a_conv.index
-        # if user == "Farid":
-        #     a2a_conv.to_csv('a2a_conv_new.csv', index=False)
-        # else:
-        #     a2a_conv.to_csv('a2a_conv_new.csv')
-
-        DMP_RFP.a2a_conv = a2a_conv 
-        DMP_RFP.display_converted_uom_rfp=display_converted_uom_rfp 
-
-
-        toc = time.time()
-
-        response=JsonResponse({"display_converted_uom_rfp":display_converted_uom_rfp})
-        add_get_params(response)
-        
-        return response
-
+            response=JsonResponse({"display_converted_uom_rfp":display_converted_uom_rfp})
+            add_get_params(response)
+            
+            return response
+        except Exception as e:
+            my_traceback = traceback.format_exc()
+            
+            logging.error(my_traceback)
+            response = JsonResponse({'error_text':str(e),
+                                        'error_text_2':my_traceback
+                                        })
+            response.status_code = 505
+            
+            add_get_params(response)
+            return response 
 
 
     @csrf_exempt
     def search_rfp(request):
-
-        # ! ****************** start Region searching ******************
-        df_full=""
-        if user == "Farid" :
-            df_full= pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-        
-        else:
-            df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-        
-        DMP_RFP.df_full_region = df_full
-        if user == "Farid":
-            a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021_Region.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-        else:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021_Region.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-
-        DMP_RFP.a2a=a2a
-        # DMP_RFP.list_of_regions_rfp = a2a['Region'].unique().tolist()
-
-        intersect = reduce(np.intersect1d, a2a.groupby('Region')['Material/Service No.'].apply(list))
-        result_df = a2a.loc[a2a['Material/Service No.'].isin(intersect), :].copy()
-        result_df['PO Item Quantity'] = result_df['PO Item Quantity'].astype('float')
-        result_df['Unit Price'] = result_df['Unit Price'].astype('float')
-        result_df['PO Item Value (GC)'] = result_df['PO Item Value (GC)'].astype('float')
-        
-
-        DMP_RFP.result_df=result_df
-        DMP_RFP.a2a=a2a
-
-        list_of_regions = result_df['Region'].value_counts().index.tolist()
-        list_of_regions = list_of_regions[::-1]
-        list_of_regions.remove('AGT')
-        list_of_regions.append('AGT')
-
-        DMP_RFP.list_of_regions=list_of_regions
-
-       # ! ****************** end Region searching ******************
-
-        #************ RFP searching section start**********************#!****
-        # Min and Max Date from dataset 
-
-        if user == "Farid" :
-            df_full= pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-        else:
-            df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+        try:
+            # ! ****************** start Region searching ******************
+            df_full=""
+            if user == "Farid" :
+                df_full= pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
             
-        DMP_RFP.min_date = df_full.loc[df_full['PO Item Creation Date'].idxmin()]['PO Item Creation Date'].strftime('%Y-%m-%d')
-        DMP_RFP.max_date = df_full.loc[df_full['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].strftime('%Y-%m-%d')
-
-        input_region  = 'AGT'
-        # df_full = df_full[df_full['Region'] == input_region]
-        DMP_RFP.df_full=df_full
-
-        app_to_app_rfp = DMP_RFP.a2a_conv.copy()
-        categories_rfp = app_to_app_rfp['Product Category Description'].value_counts().index.tolist()
-        DMP_RFP.categories_rfp=categories_rfp
-        
-        app_to_app_rfp['PO Item Creation Date'] = pd.DatetimeIndex(app_to_app_rfp['PO Item Creation Date'])
-        app_to_app_rfp['Material/Service No.'] = app_to_app_rfp['Material/Service No.'].astype('str')
-        #!111111
-        DMP_RFP.app_to_app_rfp_after_search=app_to_app_rfp
-        DMP_RFP.app_to_app_rfp_after_search_2=app_to_app_rfp.copy()
-        # pb_df=DMP_RFP.uploaded_rfp_file.copy()
-        pb_df = DMP.new_pb_df
-
-        # pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].apply(lambda x: str(x)[:-2])
-
-        #!222
-        DMP_RFP.pb_df_after_search=pb_df.copy()
-        pb_df['BP Material / \nService Master No.'] =  pb_df['BP Material / \nService Master No.'].astype('str')
-        idxs = app_to_app_rfp['Material/Service No.'].value_counts().index.tolist()
-        mask = pb_df['BP Material / \nService Master No.'].isin(idxs)
-        app_rfp_df = pb_df[mask].copy()
-        idxs_2 = pb_df['BP Material / \nService Master No.'].value_counts().index.tolist()
-
-
-        #!3333
-
-
-        def normalize(app_rfp_df):
-
-            types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 217.72, 'LB':0.45},
-                            'Area':   {'M2': 1, 'JO': 1.6},
-                            'Length': {'M': 1, 'FT': 0.3048, 'LN': 1, 'LS': 1, 'IN': 0.0254, 'KM': 1000, 'ROL': 1, 'FOT': 0.3048},
-                            'Volume': {'L': 1, 'DR': 208.2, 'GAL': 3.79, 'M3': 1000, 'PL': 1, 'ML': 0.001, 'BTL': 0.75} }
-
-
-            i = 0
-            for index, row in app_rfp_df.iterrows():
-                for key in types_of_UoM:
-                    a = types_of_UoM[key]
-                    if  row['UOM'] in a.keys():
-                        print('YYYYYYYY')
-                        print('BP Material / Service Master No.', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('BP Material / \nService Master No.')])
-                        print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')])
-                        print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')])
-                        print('a[row[UOM]]', a[row['UOM']])
-
-                        app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] / a[row['UOM']]
-                        app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] / a[row['UOM']]
-                        app_rfp_df.iat[i, app_rfp_df.columns.get_loc('UOM')] = next(iter(a))
-                i += 1
+            else:
+                df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
             
-            values_contains = ['pack of', '/pack', 'pk of', '/pk', 'pkt of', '/pkt', 'per pack', 'drum of']
-            values_ends = ['/pac', '/pa', '/p']
-            app_rfp_df['UOM_label'] = 0
-            try:
-                app_rfp_df.reset_index(inplace=True, drop=True)
-            except:
-                pass
-            list_of_mids = []
-            for index, row in app_rfp_df.iterrows():
-                material_id = row['BP Material / \nService Master No.']
-                supp_desc = row['Supplier Description'].split(',')
-                short_desc = row['BP Short Description'].split(',')
-                long_desc = row['BP Long Description'][:40].split(',') 
-                material_id = str(material_id).replace(' ', '')
-                if material_id == '11045408':
-                    print('11111111111111111111111111111111111111111111111111    Unit Price: ', app_rfp_df.loc[index, '2021 rates'])
+            DMP_RFP.df_full_region = df_full
+            if user == "Farid":
+                a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021_Region.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+            else:
+                a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021_Region.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
 
-                if row['UOM'] in ['EA', 'PH', 'BOX', 'PK']:
-                    flag = 0
-                    desc_word_list  = list(set(supp_desc).union(set(short_desc)))
-                    for word in desc_word_list:
-                        for value in values_contains:
-                            if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
-                                newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
-                                listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                if len(listOfNumbers) > 1:
-                                    try:
-                                        newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
-                                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                        if len(listOfNumbers) == 0:
-                                            listOfNumbers = re.findall(r'\d+', newstr)
+            DMP_RFP.a2a=a2a
+            # DMP_RFP.list_of_regions_rfp = a2a['Region'].unique().tolist()
 
-                                        if len(listOfNumbers) == 0:
-                                            newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
+            intersect = reduce(np.intersect1d, a2a.groupby('Region')['Material/Service No.'].apply(list))
+            result_df = a2a.loc[a2a['Material/Service No.'].isin(intersect), :].copy()
+            result_df['PO Item Quantity'] = result_df['PO Item Quantity'].astype('float')
+            result_df['Unit Price'] = result_df['Unit Price'].astype('float')
+            result_df['PO Item Value (GC)'] = result_df['PO Item Value (GC)'].astype('float')
+            
+
+            DMP_RFP.result_df=result_df
+            DMP_RFP.a2a=a2a
+
+            list_of_regions = result_df['Region'].value_counts().index.tolist()
+            list_of_regions = list_of_regions[::-1]
+            list_of_regions.remove('AGT')
+            list_of_regions.append('AGT')
+
+            DMP_RFP.list_of_regions=list_of_regions
+
+        # ! ****************** end Region searching ******************
+
+            #************ RFP searching section start**********************#!****
+            # Min and Max Date from dataset 
+
+            if user == "Farid" :
+                df_full= pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+            else:
+                df_full= pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
+                
+            DMP_RFP.min_date = df_full.loc[df_full['PO Item Creation Date'].idxmin()]['PO Item Creation Date'].strftime('%Y-%m-%d')
+            DMP_RFP.max_date = df_full.loc[df_full['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].strftime('%Y-%m-%d')
+
+            input_region  = 'AGT'
+            # df_full = df_full[df_full['Region'] == input_region]
+            DMP_RFP.df_full=df_full
+
+            app_to_app_rfp = DMP_RFP.a2a_conv.copy()
+            categories_rfp = app_to_app_rfp['Product Category Description'].value_counts().index.tolist()
+            DMP_RFP.categories_rfp=categories_rfp
+            
+            app_to_app_rfp['PO Item Creation Date'] = pd.DatetimeIndex(app_to_app_rfp['PO Item Creation Date'])
+            app_to_app_rfp['Material/Service No.'] = app_to_app_rfp['Material/Service No.'].astype('str')
+            #!111111
+            DMP_RFP.app_to_app_rfp_after_search=app_to_app_rfp
+            DMP_RFP.app_to_app_rfp_after_search_2=app_to_app_rfp.copy()
+            # pb_df=DMP_RFP.uploaded_rfp_file.copy()
+            pb_df = DMP.new_pb_df
+
+            # pb_df['BP Material / \nService Master No.'] = pb_df['BP Material / \nService Master No.'].apply(lambda x: str(x)[:-2])
+
+            #!222
+            DMP_RFP.pb_df_after_search=pb_df.copy()
+            pb_df['BP Material / \nService Master No.'] =  pb_df['BP Material / \nService Master No.'].astype('str')
+            idxs = app_to_app_rfp['Material/Service No.'].value_counts().index.tolist()
+            mask = pb_df['BP Material / \nService Master No.'].isin(idxs)
+            app_rfp_df = pb_df[mask].copy()
+            idxs_2 = pb_df['BP Material / \nService Master No.'].value_counts().index.tolist()
+
+
+            #!3333
+
+
+            def normalize(app_rfp_df):
+
+                types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 217.72, 'LB':0.45},
+                                'Area':   {'M2': 1, 'JO': 1.6},
+                                'Length': {'M': 1, 'FT': 0.3048, 'LN': 1, 'LS': 1, 'IN': 0.0254, 'KM': 1000, 'ROL': 1, 'FOT': 0.3048},
+                                'Volume': {'L': 1, 'DR': 208.2, 'GAL': 3.79, 'M3': 1000, 'PL': 1, 'ML': 0.001, 'BTL': 0.75} }
+
+
+                i = 0
+                for index, row in app_rfp_df.iterrows():
+                    for key in types_of_UoM:
+                        a = types_of_UoM[key]
+                        if  row['UOM'] in a.keys():
+                            print('YYYYYYYY')
+                            print('BP Material / Service Master No.', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('BP Material / \nService Master No.')])
+                            print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')])
+                            print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')])
+                            print('a[row[UOM]]', a[row['UOM']])
+
+                            app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] / a[row['UOM']]
+                            app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] / a[row['UOM']]
+                            app_rfp_df.iat[i, app_rfp_df.columns.get_loc('UOM')] = next(iter(a))
+                    i += 1
+                
+                values_contains = ['pack of', '/pack', 'pk of', '/pk', 'pkt of', '/pkt', 'per pack', 'drum of']
+                values_ends = ['/pac', '/pa', '/p']
+                app_rfp_df['UOM_label'] = 0
+                try:
+                    app_rfp_df.reset_index(inplace=True, drop=True)
+                except:
+                    pass
+                list_of_mids = []
+                for index, row in app_rfp_df.iterrows():
+                    material_id = row['BP Material / \nService Master No.']
+                    supp_desc = row['Supplier Description'].split(',')
+                    short_desc = row['BP Short Description'].split(',')
+                    long_desc = row['BP Long Description'][:40].split(',') 
+                    material_id = str(material_id).replace(' ', '')
+                    if material_id == '11045408':
+                        print('11111111111111111111111111111111111111111111111111    Unit Price: ', app_rfp_df.loc[index, '2021 rates'])
+
+                    if row['UOM'] in ['EA', 'PH', 'BOX', 'PK']:
+                        flag = 0
+                        desc_word_list  = list(set(supp_desc).union(set(short_desc)))
+                        for word in desc_word_list:
+                            for value in values_contains:
+                                if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
+                                    newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
+                                    listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                    if len(listOfNumbers) > 1:
+                                        try:
+                                            newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
                                             listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
                                             if len(listOfNumbers) == 0:
                                                 listOfNumbers = re.findall(r'\d+', newstr)
 
-                                    except:
-                                        continue
-                                if len(listOfNumbers) != 1:
-                                    continue
-                                each_count = listOfNumbers[0]
-                                list_of_mids.append(row['BP Material / \nService Master No.'])
-                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
-                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
-                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
-                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
-                                row['UOM_label'] = 1
-                                flag = 1
-                                break
-                        if flag == 1:
-                            break
-
-                    if flag == 0:  
-                        if fuzz.partial_ratio(short_desc, long_desc) >= 50:
-                            desc_word_list  = row['BP Long Description'].split(',') 
-                            for word in desc_word_list:
-                                for value in values_contains:
-                                    if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
-                                        newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
-                                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-
-                                        if len(listOfNumbers) > 1:
-                                            try:
-                                                newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
+                                            if len(listOfNumbers) == 0:
+                                                newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
                                                 listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
                                                 if len(listOfNumbers) == 0:
                                                     listOfNumbers = re.findall(r'\d+', newstr)
 
-                                                if len(listOfNumbers) == 0:
-                                                    newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
+                                        except:
+                                            continue
+                                    if len(listOfNumbers) != 1:
+                                        continue
+                                    each_count = listOfNumbers[0]
+                                    list_of_mids.append(row['BP Material / \nService Master No.'])
+                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
+                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
+                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
+                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
+                                    row['UOM_label'] = 1
+                                    flag = 1
+                                    break
+                            if flag == 1:
+                                break
+
+                        if flag == 0:  
+                            if fuzz.partial_ratio(short_desc, long_desc) >= 50:
+                                desc_word_list  = row['BP Long Description'].split(',') 
+                                for word in desc_word_list:
+                                    for value in values_contains:
+                                        if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
+                                            newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
+                                            listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+
+                                            if len(listOfNumbers) > 1:
+                                                try:
+                                                    newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
                                                     listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
                                                     if len(listOfNumbers) == 0:
                                                         listOfNumbers = re.findall(r'\d+', newstr)
 
-                                            except:
+                                                    if len(listOfNumbers) == 0:
+                                                        newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
+                                                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                                        if len(listOfNumbers) == 0:
+                                                            listOfNumbers = re.findall(r'\d+', newstr)
+
+                                                except:
+                                                    continue
+                                            if len(listOfNumbers) != 1:
                                                 continue
-                                        if len(listOfNumbers) != 1:
-                                            continue
-                                        each_count = listOfNumbers[0]
-                                    
-                                        list_of_mids.append(row['BP Material / \nService Master No.'])
-                                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
-                                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
-                                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
-                                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
-                                        row['UOM_label'] = 1
-                                        flag = 1
+                                            each_count = listOfNumbers[0]
+                                        
+                                            list_of_mids.append(row['BP Material / \nService Master No.'])
+                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
+                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
+                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
+                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
+                                            row['UOM_label'] = 1
+                                            flag = 1
+                                            break
+                                    if flag == 1:
                                         break
-                                if flag == 1:
-                                    break
-  
-
-                if user == 'Farid':
-                    alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
-                else:
-                    alt_uom_df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
-                
-                
-                if alt_uom_df[alt_uom_df['Material ID'] == str(material_id)].shape[0] > 0: #okay just one minute okay          
-                    al_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['AUn'].tolist()[0]
-                    b_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['BUn'].tolist()[0]
-                    counter = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Counter'].tolist()[0]
-                    denom = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Denom.'].tolist()[0]
-                    fraction = (int(counter) / int(denom))
-            
-                    
-                    uom_group_list = ['PH', 'PK', 'PAC']  # holds uoms that represents group
-
-                    if app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] != 1 and  (al_un in uom_group_list  and row['UOM'] in uom_group_list):                        
-                            if material_id == '11045408':
-                                print('222222222222222222222222222222222222222222222222222222222222222222222222')
-                            app_rfp_df.loc[index, '2021 rates'] = app_rfp_df.loc[index, '2021 rates'] / fraction
-                            app_rfp_df.loc[index, '2020 rates'] = app_rfp_df.loc[index, '2020 rates'] / fraction
-                            app_rfp_df.loc[index, 'UOM'] = b_un
-
-
-            return app_rfp_df
     
+
+                    if user == 'Farid':
+                        alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
+                    else:
+                        alt_uom_df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
+                    
+                    
+                    if alt_uom_df[alt_uom_df['Material ID'] == str(material_id)].shape[0] > 0: #okay just one minute okay          
+                        al_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['AUn'].tolist()[0]
+                        b_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['BUn'].tolist()[0]
+                        counter = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Counter'].tolist()[0]
+                        denom = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Denom.'].tolist()[0]
+                        fraction = (int(counter) / int(denom))
+                
+                        
+                        uom_group_list = ['PH', 'PK', 'PAC']  # holds uoms that represents group
+
+                        if app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] != 1 and  (al_un in uom_group_list  and row['UOM'] in uom_group_list):                        
+                                if material_id == '11045408':
+                                    print('222222222222222222222222222222222222222222222222222222222222222222222222')
+                                app_rfp_df.loc[index, '2021 rates'] = app_rfp_df.loc[index, '2021 rates'] / fraction
+                                app_rfp_df.loc[index, '2020 rates'] = app_rfp_df.loc[index, '2020 rates'] / fraction
+                                app_rfp_df.loc[index, 'UOM'] = b_un
+
+
+                return app_rfp_df
+        except Exception as e:
+            my_traceback = traceback.format_exc()
+            
+            logging.error(my_traceback)
+            response = JsonResponse({'error_text':str(e),
+                                        'error_text_2':my_traceback
+                                        })
+            response.status_code = 505
+            
+            add_get_params(response)
+            return response 
         app_rfp_df = normalize(app_rfp_df)
 
         DMP_RFP.app_rfp_df_after_search = app_rfp_df
