@@ -220,10 +220,17 @@ class DMP_RFP(DMP):
                 # result['base_index'] = result.index
                 print('Shape of dataframe: ', result.shape)
                 
+<<<<<<< HEAD
+                # if user == "Farid":
+                #     result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
+                # else:
+                    # result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
+=======
                 if user == "Farid":
                     result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
                 else:
                     result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
+>>>>>>> parent of 51e292c (save)
 
                 # main()        
                 if user == "Farid":
