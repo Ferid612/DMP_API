@@ -213,16 +213,16 @@ class DMP_RFP(DMP):
         # module = importlib.import_module(search_alg_parallel.__module__)
         # print('Modules: ',sys.modules)
 
-        # with Pool() as pool:
-        #     result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
-        # result = result[~result.index.duplicated(keep='first')]
-        # # result['base_index'] = result.index
-        # print('Shape of dataframe: ', result.shape)
+        with Pool() as pool:
+            result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
+        result = result[~result.index.duplicated(keep='first')]
+        # result['base_index'] = result.index
+        print('Shape of dataframe: ', result.shape)
         
-        # if user == "Farid":
-        #     result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-        # else:"
-        #     result.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
+        if user == "Farid":
+            result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
+        else:
+            result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
 
         # main()        
         if user == "Farid":
