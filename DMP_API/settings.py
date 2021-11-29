@@ -107,7 +107,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'opencensus.ext.django.middleware.OpencensusMiddleware',
 ]
 ROOT_URLCONF = 'DMP_API.urls'
 
