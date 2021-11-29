@@ -81,11 +81,14 @@ target/
 
 
 ### Django ###
-# *.log
+*.log
 *.pot
 *.pyc
 __pycache__/
 local_settings.py
+
+!debug.log
+!request_handler.log
 
 .env
 db.sqlite3

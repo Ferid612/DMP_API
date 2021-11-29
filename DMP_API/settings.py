@@ -192,6 +192,11 @@ LOGGING = {
             'backupCount': 5,
             'formatter':'standard',
         },
+                "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+        },
     },
     'loggers': {
         '': { 
@@ -201,6 +206,11 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['request_handler'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'console': {
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False
         },
