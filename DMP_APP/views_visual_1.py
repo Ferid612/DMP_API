@@ -150,6 +150,8 @@ class DMP:
 
                     DMP.proposed_prices = DMP.convert_usd(DMP.input_proposed_prices, DMP.input_currencies)
                     # get most similar vendor name
+                    print('\033[91m',DMP.all_dataframe.shape,'\033[0m')
+                    
                     vendor_names_all_dataframe = DMP.all_dataframe['Vendor Name'].value_counts().index.tolist()
                     input_vendor_names_fuzzy=[]
                     for a in DMP.input_vendor_names:
@@ -560,7 +562,7 @@ class DMP:
 
             i=0
             for index in idx:
-                if temp[temp['Material/Service No.'] == index].shape[0] > 1 and index != '#':
+                if temp[temp['Material/Service No.'] == index].shape[0] > 1 and index != '0':
                     list_of_idx.append(index)
                     if i == 9:
                         break
@@ -685,7 +687,8 @@ class DMP:
             fig.add_trace(fig2.data[0])
 
             fig = update_layout_fig_6(fig, DMP.plot_bg)
-
+            fig.update(layout_coloraxis_showscale=False)
+         
             div_6 = opy.plot(fig, auto_open=False, output_type='div')
             
             response = JsonResponse({            

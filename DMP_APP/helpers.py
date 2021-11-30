@@ -619,11 +619,17 @@ def get_dates(request):
 
     
 def preprocess_search_data(df, input_region):
-    
+    df['Material/Service No.'] =  df['Material/Service No.'].astype('str')
+    df['Manufacturer Part No.'] =  df['Manufacturer Part No.'].astype('str')
+    df['Manufacturer Name'] =  df['Manufacturer Name'].astype('str')
+    df['Vendor Name'] =  df['Vendor Name'].astype('str')
+    df['Region'] =  df['Region'].astype('str')
+    df['Product Category Description'] = df['Product Category Description'].astype('str')
+    df['Product Category'] = df['Product Category'].astype('str')
     df=df[df['Region']==input_region]
 
-    df = df[df['PO Item Deletion Flag'] != 'X']
-    df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
+    # df = df[df['PO Item Deletion Flag'] != 'X']
+    # df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
 
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    

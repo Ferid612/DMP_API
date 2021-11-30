@@ -10,16 +10,23 @@ warnings.filterwarnings('ignore')
 
 
 def preprocess_search_data(df, input_region):
-    
+    df['Material/Service No.'] =  df['Material/Service No.'].astype('str')
+    df['Manufacturer Part No.'] =  df['Manufacturer Part No.'].astype('str')
+    df['Manufacturer Name'] =  df['Manufacturer Name'].astype('str')
+    df['Vendor Name'] =  df['Vendor Name'].astype('str')
+    df['Region'] =  df['Region'].astype('str')
+    df['Product Category Description'] = df['Product Category Description'].astype('str')
+    df['Product Category'] = df['Product Category'].astype('str')
     df=df[df['Region']==input_region]
-
-    df = df[df['PO Item Deletion Flag'] != 'X']
-    df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
+    # df = df[df['PO Item Deletion Flag'] != 'X']
+    # df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
 
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
 
     df = df[get_required_columns()]
+    
+    
     df['PO Item Value (GC)'].apply(lambda x : "{:,}".format(x))
     
     df['score'] = -1.0
@@ -366,7 +373,7 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
     user_input_desc = list(set(desc_short_in.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split()))
     if result.shape[0] > 0:
         result = result[result['PO Item Value (GC)'] > 0]
-        result['Unit Price'] = result['PO Item Value (GC)'] / result['PO Item Quantity']
+        result['Unit Price'] = result['PO Item Value (GC)'] / result['PO Item Quantity'] / 10 + 2
         app = result[result['desc'] == 'm_p'].copy()
         app = app[~app.index.duplicated(keep='first')]
         a = result[result['desc'] == 'm_p']
@@ -380,15 +387,15 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
     print('Total running time: ', toc-tic)    
 
     # Normalization
-    app['base_index'] = app.index
-    app = normalize(app)
-
     display_converted_uom=True
-    if app.shape[0] == app[app['Unit Price'] == app['Converted Price']].shape[0] or app.shape[0] == app[app['UoM_label'] == 1].shape[0]:
-        display_converted_uom=False
+    if app.shape[0] > 0:
+        app['base_index'] = app.index
+        app = normalize(app)
+        if app.shape[0] == app[app['Unit Price'] == app['Converted Price']].shape[0] or app.shape[0] == app[app['UoM_label'] == 1].shape[0]:
+            display_converted_uom=False
 
-    app.reset_index(inplace=True, drop=True)
-    app['index']=app.index
+        app.reset_index(inplace=True, drop=True)
+        app['index']=app.index
 
     result.reset_index(inplace=True, drop=True)
     result['index']=result.index

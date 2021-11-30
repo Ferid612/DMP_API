@@ -209,23 +209,22 @@ class DMP_RFP(DMP):
                 else:
                     df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',  error_bad_lines=False,  dtype={'PO Item Quantity': 'float64', 'PO Item Value (GC)': 'float64',})
                 
-                reload(search_alg_parallel)
+                # reload(search_alg_parallel)
                 # importlib.reload(sys.modules['search_alg_parallel'])
                 # module = importlib.import_module(search_alg_parallel.__module__)
                 # print('Modules: ',sys.modules)
 
-                # with Pool() as pool:
-                #     result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
-                # result = result[~result.index.duplicated(keep='first')]
-                # # result['base_index'] = result.index
+                with Pool() as pool:
+                    result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
+                result = result[~result.index.duplicated(keep='first')]
+                result['base_index'] = result.index
                 # print('Shape of dataframe: ', result.shape)
                 
-                # if user == "Farid":
-                #     result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-                # else:
-                    # result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
+                if user == "Farid":
+                    result.to_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
+                else:
+                    result.to_csv(r"C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv")
 
-                # main()        
                 if user == "Farid":
                     a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
                 else:
