@@ -140,7 +140,6 @@ class DMP:
                     DMP.df_org = processed_df.copy()
                     all_dataframes_from_searching = main_searching_algoritm(DMP.input_material_id, DMP.input_description, DMP.input_manufacturer_part_number, DMP.input_manufacturer_name, processed_df)
                     DMP.all_dataframes_from_searching = all_dataframes_from_searching
-
                     
                     DMP.all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
                     DMP.result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])
