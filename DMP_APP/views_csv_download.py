@@ -13,7 +13,7 @@ def download_csv(request):
     
     # * cheking user status
     user_type="not_user"
-    user_type = check_user_status(request)
+    user_type = check_user_status(request)['user_type']
     
     if user_type == "customer":
         

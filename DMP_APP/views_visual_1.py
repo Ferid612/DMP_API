@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt
 import numpy as np
 import math
@@ -36,7 +37,7 @@ class DMP:
             try:
                     
                 #*cheking user status
-                # user_type=check_user_status(request)  
+                # user_type=check_user_status(request)['user_type']  
                 if 'customer' == 'customer':
                 
                     df=upload_file_helpers(request)
@@ -74,9 +75,8 @@ class DMP:
         # Build the POST parameters
         if request.method == 'POST':
             
-            #*cheking user status
-            user_type=check_user_status(request)    
-
+            user_type = check_user_status(request)['user_type']  
+            
             if user_type != 'not_user':
                 check_data=False
                 try:    
@@ -117,7 +117,7 @@ class DMP:
     def searching(request):
         if request.method =='POST':
             try: 
-                user_type=check_user_status(request)    
+                user_type=check_user_status(request)['user_type']    
                 if user_type != 'not_user':
                     #* get all input data in inputs
                     DMP.input_region_name = request.POST.get('region')  
@@ -283,7 +283,7 @@ class DMP:
 
             # * cheking user status
             user_type="not_user"
-            user_type = check_user_status(request)
+            user_type = check_user_status(request)['user_type']
             if user_type == "customer":
 
                 approve_list= request.POST.getlist('approve_list[]')

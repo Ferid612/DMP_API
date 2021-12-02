@@ -9,6 +9,8 @@ from . import views_csv_download
 urlpatterns = [
     path('upload_file_historical/',DMP.upload_file_historical),
     path('check_file_historical/',DMP.check_file_historical),
+    path('check_user_status/',custom_logic.check_user_status),
+    
     
     
     path('normalise/',DMP_normalise.normalise),

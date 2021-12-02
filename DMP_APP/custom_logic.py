@@ -9,64 +9,79 @@ import  secrets
 user="Farid"
 # user="Javidan"
 
-
+@csrf_exempt
 def check_user_status(request):
+    user_type = "not_user"
     
-    input_user_name = request.POST.get('input_user_name')
-    input_mail = request.POST.get('input_mail')
-    input_token = request.POST.get('input_token')
+    try:
+        input_user_name = request.POST.get('input_user_name')
+        input_mail = request.POST.get('input_mail')
+        input_token = request.POST.get('input_token')
 
-    user_type="not_user"
+       
+        with Session(engine) as session:
         
-    # print("++++++++++++++++++++++++++++++++++ user data ***********************************************")
-    # print("input_user_name: ", input_user_name)
-    # print("input_mail:", input_mail)
-    # print("input_token: ", input_token)
-    # print("++++++++++++++++++++++++++++++++++ user data ***********************************************")
-    
-
-    with Session(engine) as session:
-      
-        sql_table= (
-            session.query(
-                DMP_USERS.user_name,
-                DMP_USERS.user_password,DMP_USERS.user_type,DMP_USERS.user_id,USER_SESSION.user_token)
-            .select_from(DMP_USERS).join(USER_SESSION, USER_SESSION.user_id==DMP_USERS.user_id)
-            .filter(DMP_USERS.user_name==input_user_name)
-            .order_by(DMP_USERS.user_name))   
-        
-        sql_table = serializer(sql_table)
-
-        try:
+            sql_table= (
+                session.query(
+                    DMP_USERS.user_name,DMP_USERS.first_name,DMP_USERS.last_name,DMP_USERS.user_mail,
+                    DMP_USERS.user_password,DMP_USERS.user_type,DMP_USERS.user_id,USER_SESSION.user_token)
+                .select_from(DMP_USERS).join(USER_SESSION, USER_SESSION.user_id==DMP_USERS.user_id)
+                .filter(DMP_USERS.user_name==input_user_name)
+                .order_by(DMP_USERS.user_name))   
+            
+            sql_table = serializer(sql_table)
+            
             user_token = sql_table[0]['user_token']
-    
             if user_token == input_token:
+                user_name = sql_table[0]['user_name']
+                first_name = sql_table[0]['first_name']
+                last_name = sql_table[0]['last_name']
+                user_mail = sql_table[0]['user_mail']
+                user_id = sql_table[0]['user_id']
                 user_type = sql_table[0]['user_type']
-                print("\033[94m user_type: " + user_type +'\033[0m ')
             else:
                 user_type="not_user"
                     
-                    
-        except Exception as e:
-            
-            user_type="not_user"
-            print("exc: ",e)     
-            return user_type
+    except Exception as e:
+        user_type="not_user"
+    if user_type != "not_user":
+        response = JsonResponse({      
+            'user_name': user_name,
+            'first_name': first_name,
+            'last_name': last_name,
+            'user_mail': user_mail,
+            'user_id':user_id,
+            'user_type':user_type
+            })
+    else:
+            response = JsonResponse({      
+            'user_name': "Unknown",
+            'first_name': "Unknown",
+            'last_name': "Unknown",
+            'user_mail': "Unknown@gmail.com",
+            'user_id':"Unknown_id",
+            'user_type':user_type
+            })
     
-    return user_type
-            
+    add_get_params(response)
+    response['user_type'] = user_type
     
+    return response
+            
+            
+            
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
-        user_type=""  
+        user_type = ""  
+        user_mail = ""
+        user_name = ""
         input_user_name = request.POST.get('input_user_name')
         input_password = request.POST.get('input_password')
-        
         with Session(engine) as session:
             sql_table= (
                 session.query(
-                    DMP_USERS.user_name,
+                    DMP_USERS.user_name,DMP_USERS.user_mail, DMP_USERS.first_name,DMP_USERS.last_name,
                     DMP_USERS.user_password,DMP_USERS.user_type,DMP_USERS.user_id,USER_SESSION.user_token)
                 .select_from(DMP_USERS).join(USER_SESSION, USER_SESSION.user_id==DMP_USERS.user_id)
                 .filter(DMP_USERS.user_name==input_user_name)
@@ -78,16 +93,21 @@ def login(request):
                 user_password = sql_table[0]['user_password']
         
                 if user_password == input_password:
+                    
+                    user_name = sql_table[0]['user_name']
+                    first_name = sql_table[0]['first_name']
+                    last_name = sql_table[0]['last_name']
+                    user_mail = sql_table[0]['user_mail']
+                    user_id = sql_table[0]['user_id']
                     user_type = sql_table[0]['user_type']
-                    print("\033[94m user_type: " + user_type + '\033[0m ')
+                    
                 else:
                     user_type = "not_user"
                             
             
             except Exception as e: 
-                user_type="not_user"
-                print("exc: ",e)     
-                return user_type
+                user_type = "not_user"
+               
 
         if(user_type != 'not_user'):
             with Session(engine) as session:
@@ -104,10 +124,15 @@ def login(request):
            
            
 
-            response = JsonResponse({      
-                    'user_type':user_type, 
-                    'user_token':new_token,
-                        })
+            response = JsonResponse({   
+                'user_name': user_name,
+                'first_name': first_name,
+                'last_name': last_name,
+                'user_mail': user_mail,
+                'user_id':user_id,
+                'user_type':user_type,
+                'user_token':new_token,
+                    })
             add_get_params(response)
             return response
         else:

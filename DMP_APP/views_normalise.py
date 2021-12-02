@@ -39,7 +39,7 @@ class DMP_normalise(DMP):
         if request.method =='POST':  
             # * cheking user status
             user_type="not_user"
-            user_type = check_user_status(request)
+            user_type = check_user_status(request)['user_type']
              
             if user_type == "customer":
                 approve_list = request.POST.getlist('approve_list[]')
@@ -76,7 +76,7 @@ class DMP_normalise(DMP):
         if request.method =='POST':  
             # * cheking user status
             user_type="not_user"
-            user_type = check_user_status(request)
+            user_type = check_user_status(request)['user_type']
             
             if user_type == "customer":
                 app=DMP.result_data_app_copy.copy()
