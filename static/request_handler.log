@@ -1,0 +1,2 @@
+2021-12-03 16:10:52,378 [ERROR] django.request: Not Implemented: /home/check_file_historical/
+2021-12-03 16:17:49,330 [ERROR] django.request: HTTP Version Not Supported: /rfp/search_rfp/
