@@ -27,10 +27,16 @@ def get_engine(user, passwd, host, port, db):
 
 
 
-DATABASE_SERVER =  'dmp-postgresql-server.postgres.database.azure.com'
 DATABASE_NAME ='dmp-postgresql-server'
 DATABASE_USER= 'dmpadmin@dmp-postgresql-server'
+DATABASE_SERVER =  'dmp-postgresql-server.postgres.database.azure.com'
+
 DATABASE_PASSWORD= 'Farid612'
+
+# DATABASE_NAME ='db_dmp'
+# DATABASE_USER= 'postgres'
+# DATABASE_SERVER =  'localhost'
+
 DATABASE_PORT= '5432'
 TENANT_ID = ""
 CLIENT_ID = ""
