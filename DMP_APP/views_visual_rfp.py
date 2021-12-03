@@ -2233,7 +2233,7 @@ class DMP_RFP(DMP):
             # unique_increase_df.to_csv('unique_increase_df.csv')    # Have to display in UI 
             message = "Dear supplier " + DMP_RFP.rfp_vendor_name + " our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
             print('Recommendationnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn: ', message)
-            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name + ' Ltd</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_user.html" target="_blank">Link for materials that has risen in price</a></h4>'
+            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name + ' Ltd</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
             rec_case_1=message
         else:
             rec_case_1="There is no recommendation in this case. "
@@ -2266,7 +2266,7 @@ class DMP_RFP(DMP):
             print('RFP Valuation is less than all positions and is covering less than 70% of last year total spend')
             message = "Dear supplier " + DMP_RFP.rfp_vendor_name + ", our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
             print('Recommendation: ', message)
-            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials.html" target="_blank">Link for materials that has risen in price</a></h4>'
+            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
             rec_case_1=message
             
             new_message  = strip_tags(html_message)

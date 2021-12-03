@@ -215,7 +215,7 @@ def negotiation_alg(proposed_price_rec, lowest_purchase_price_rec, last_purchase
 
     if flag_1==1:
 
-        html_message = message_negotiation #'<p>Dear supplier <b>' + input_vendor_1 + '</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials.html" target="_blank">Link for materials that has risen in price</a></h4>'            
+        html_message = message_negotiation #'<p>Dear supplier <b>' + input_vendor_1 + '</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'            
         
     
         try:
