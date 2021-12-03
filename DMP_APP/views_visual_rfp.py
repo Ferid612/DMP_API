@@ -209,7 +209,7 @@ class DMP_RFP(DMP):
                 else:
                     df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv',  error_bad_lines=False,  dtype={'PO Item Quantity': 'float64', 'PO Item Value (GC)': 'float64',})
                 
-                # reload(search_alg_parallel)
+                reload(search_alg_parallel)
                 # importlib.reload(sys.modules['search_alg_parallel'])
                 # module = importlib.import_module(search_alg_parallel.__module__)
                 # print('Modules: ',sys.modules)
