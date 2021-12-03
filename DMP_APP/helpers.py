@@ -430,7 +430,7 @@ def normalize_1(in_data, types_of_UoM):
 
 def normalization_based_alternative_uom(in_data):
     if user == 'Farid':
-        alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/1.csv", error_bad_lines=False, dtype="unicode")
+        alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
     else:
         alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
 
