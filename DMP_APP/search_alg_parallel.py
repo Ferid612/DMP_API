@@ -62,32 +62,47 @@ warnings.filterwarnings('ignore')
 try:
     df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
-    print('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 000000000000')
+    logging.warning('df: ')
+    logging.warning(df.shape)
+    logging.warning('df columns: ')
+    logging.warning(df.columns)
 
     df = df[df['Region'] == 'AGT']
     df = df[df['PO Status Name'] != 'Deleted']
     df = df[df['PO Status Name'] != 'Held']
     df = df[df['PO Item Deletion Flag'] != 'X']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 111111111111111111')
 
     all_rows=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","PO Item Description", "Manufacturer Name", "Vendor Name", 
                 "Manufacturer Part No.", "Long Description","PO Item Creation Date","PO Item Quantity", "PO Item Quantity Unit", "PO Item Value (GC)",
                 "PO Item Value (GC) Unit", "Product Category", "Product Category Description", "PO Status Name", 'Region']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 22222222222')
 
     df = df[all_rows]
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 333333333')
+    
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 444444444')
+   
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 5555555555')
     
     df['score'] = -1.0
     df['path'] = ''
     df['desc'] = ''
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 6666666666666')
     
     df['desc_words_short'] = [short_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for short_desc in df['PO Item Description'].values]
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 777777777777777')
+    
     df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for long_desc in df['Long Description'].values]
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 888888888')
 
-except:
+except Exception as e:
     df = pd.DataFrame()
-    print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
-
+    logging.warning('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
+    logging.warning(e)
    
 def searching_algorithm(item_number, desc_short_in, part_number, manufacture_name, df=df):
     logging.warning("!!!!!!!!!!!!!!!!!!df.shape")
