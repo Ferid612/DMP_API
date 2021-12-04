@@ -59,10 +59,7 @@ warnings.filterwarnings('ignore')
 
 
 try:
-    if user == "Farid":
-        df = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
-    else:
-        df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+    df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
     print('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
 

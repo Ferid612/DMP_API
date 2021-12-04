@@ -1339,10 +1339,7 @@ class DMP_RFP(DMP):
 
 
         #!  ------------------------- START  Evaluation for non-pricebook items -------------------------
-        if user=="Farid":
-            df = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\df_all_regions_new.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
-        else:
-            df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_new.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+        df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_new.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
         df = df[df['Region'] == DMP_RFP.rfp_region_name]
         df = df[df['PO Item Deletion Flag'] != 'X']
@@ -1360,10 +1357,7 @@ class DMP_RFP(DMP):
 
 
         temp_df = df[(df['Vendor Name'].str.lower() == DMP_RFP.rfp_vendor_name.lower())].copy()
-        if user=="Farid":
-            a2a = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\A2A_28_08_2021.csv')
-        else:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
+        a2a = pd.read_csv(str(BASE_DIR) + '/static/files\A2A_28_08_2021.csv')
 
         new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
         # # Step - 1  (material id: yes   |   part number: yes)
@@ -1496,11 +1490,9 @@ class DMP_RFP(DMP):
 
         unique_increase_df = unique_increase_df.append(increase_df_23)
         
-        if user== "Farid":
-            unique_increase_df.to_csv('C:\\Users\\DRL-Team\\Desktop\\DMP\\files\\unique_increase_df.csv')
-        else:
-            unique_increase_df.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\unique_increase_df_new.csv')
-            increase_df_23.to_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\increase_df_23_new.csv')            
+        unique_increase_df.to_csv(str(BASE_DIR) + '/static/unique_increase_df.csv')
+        increase_df_23.to_csv(str(BASE_DIR) + '/static/increase_df_23_new.csv')            
+
 
         DMP_RFP.unique_increase_df = unique_increase_df
 
