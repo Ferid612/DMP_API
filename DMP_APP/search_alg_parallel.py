@@ -69,9 +69,17 @@ try:
     logging.warning(df.columns)
 
     df = df[df['Region'] == 'AGT']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT   A')
     df = df[df['PO Status Name'] != 'Deleted']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT   B')
+    
     df = df[df['PO Status Name'] != 'Held']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT   C')
+    
     df = df[df['PO Item Deletion Flag'] != 'X']
+    logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT   D')
+    
+    
     logging.warning('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT 111111111111111111')
 
     all_rows=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","PO Item Description", "Manufacturer Name", "Vendor Name", 
