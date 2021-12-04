@@ -96,15 +96,6 @@ class DMP_RFP(DMP):
                 print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
                 DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', index=False)
                 df_all_regions_uploaded_check= pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv')
-                logging.warning("df_all_regions uploaded cheking dfffffff")
-                logging.warning(DMP_RFP.uploaded_historical_data.shape)
-                
-                logging.warning("df_all_regions uploaded chekinggggggg")
-                logging.warning(df_all_regions_uploaded_check.shape)
-
-                logging.warning("df_all_regions uploaded cheking columsn")
-                logging.warning(df_all_regions_uploaded_check.columns)
-                
                 reload(search_alg_parallel)
         
                 with Pool() as pool:
