@@ -657,6 +657,8 @@ class DMP_RFP(DMP):
                     return response
             else:
                 fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                div_1 = opy.plot(fig, auto_open=False, output_type='div')
+            
                 #! return finded rows data in table 
                 response = JsonResponse({            
                     'plot_div_1_rfp': div_1,

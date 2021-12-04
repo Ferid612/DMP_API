@@ -48,6 +48,7 @@ import pandas as pd
 import json
 import time
 from .custom_logic import *
+import logging 
 # from .helpers import *
 
 
@@ -89,7 +90,13 @@ except:
 
    
 def searching_algorithm(item_number, desc_short_in, part_number, manufacture_name, df=df):
-
+    logging.warning("!!!!!!!!!!!!!!!!!!df.shape")
+    
+    logging.warning(df.shape)
+    logging.warning("!!!!!!!!!!!!!!!!!!df columns")
+    
+    logging.warning(df.columns)
+    
     tic = time.time()
 
     # tic = time.time()
