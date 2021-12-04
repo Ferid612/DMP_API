@@ -14,7 +14,7 @@ import datetime
 import datetime as dt
 from .helpers import *
 from functools import reduce
-from DMP_API.settings import BASE_DI
+from DMP_API.settings import BASE_DIR
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -1187,7 +1187,6 @@ class DMP_RFP(DMP):
                    
                     a = df[df['Vendor Name'].str.lower() == vendor_name.lower()]
                     a = a[(a['PO Item Creation Date'] >= input_min_date) & (a['PO Item Creation Date'] <= input_max_date)]
-                    
                     total_spend = a['PO Item Value (GC)'].sum() / 1000000
                     DMP_RFP.total_spend = str(round(total_spend, 2)) + 'M'
                     

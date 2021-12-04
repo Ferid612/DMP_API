@@ -484,19 +484,17 @@ class DMP:
 
             delta, colors = find_colors_for_vlines(spend)
             
-        # -------------------------------------  Recommendation Start -------------------------------------
+            # -------------------------------------  Recommendation Start -------------------------------------
             new_flag = 0
             if len(vendor_names) > 1:
                 new_flag =  1
-            print('proposed_price: ', proposed_price)
-            print('DMP.proposed_prices: ', DMP.proposed_prices)
-            DMP.message_recomandation = recommendation_alg(proposed_price, DMP.proposed_prices,  min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
-        # -------------------------------------  Recommendation End -------------------------------------
+            DMP.message_recomandation = recommendation_alg(proposed_price, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
+            # -------------------------------------  Recommendation End -------------------------------------
 
 
-        # # -------------------------------------  Negotiation Start ------------------------------------- 
+            # # -------------------------------------  Negotiation Start ------------------------------------- 
             negotiation_alg(proposed_price, min_price, last_price, avg_price, input_vendor_1)
-        # -------------------------------------  Negotiation End ------------------------------------- 
+            # -------------------------------------  Negotiation End ------------------------------------- 
 
 
             if flag == 1:
