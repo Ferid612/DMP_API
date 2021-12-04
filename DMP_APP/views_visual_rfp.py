@@ -95,7 +95,7 @@ class DMP_RFP(DMP):
                 tic = time.time()
                 print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
                 DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', index=False)
-                # reload(search_alg_parallel)
+                reload(search_alg_parallel)
         
                 with Pool() as pool:
                     result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
