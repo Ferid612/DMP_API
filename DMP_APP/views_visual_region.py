@@ -143,12 +143,12 @@ class DMP_Region(DMP_RFP):
 
             except:
                 print("Not successfully", file_ts.name)       
-
             response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
             add_get_params(response)
             return response
         else:
             response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
+            
             add_get_params(response)
             return response
 

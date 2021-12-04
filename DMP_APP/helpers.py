@@ -350,24 +350,17 @@ def get_curency_data():
     return content['quotes']
 
 def parallel_uom(material_id, identifier):
-    if user == "Farid":
-        if identifier == 1:
-            a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-        elif identifier == 2:
-            a2a = pd.read_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
-    else:
-        if identifier == 1:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\A2A_28_08_2021.csv')
-        elif identifier == 2:
-            a2a = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\new_df_a2a.csv')
+    if identifier == 1:
+        a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
+    elif identifier == 2:
+        a2a = pd.read_csv(str(BASE_DIR) + '/static/new_df_a2a.csv')
+
     
     a2a['PO Item Creation Date'] = pd.DatetimeIndex(a2a['PO Item Creation Date'])
     a2a = a2a[a2a['PO Item Creation Date'] >= '2018-01-01']
 
-    try:
-        del a2a['Unnamed: 0']
-    except: 
-        pass
+    if material_id == 36500878596:
+        print('36500878596  :', material_id)
 
     a2a_conv = pd.DataFrame(columns=a2a.columns,)
     temp_df = a2a.loc[a2a['Material/Service No.'] == material_id]
@@ -428,11 +421,8 @@ def normalize_1(in_data, types_of_UoM):
     
     return in_data
 
-def normalization_based_alternative_uom(in_data):
-    if user == 'Farid':
-        alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
-    else:
-        alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
+def normalization_based_alternative_uom(in_data, user):
+    alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
 
     alt_uom_df.loc[alt_uom_df['AUn'] == 'PAC', 'AUn'] = 'PH'
     for material_id in in_data['Material/Service No.'].unique().tolist(): 
@@ -536,16 +526,20 @@ def normalize(in_data):
 
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
+    material_id = in_data['Material/Service No.'].unique().tolist()[0]
 
     if in_data.shape[0] > 0:
         values_contains = ['pack of', '/pack', 'pk of', '/pk', 'pkt of', '/pkt', 'per pack', 'drum of', '/ft']
         values_ends = ['/pac', '/pa', '/p']
         in_data['UoM_label'] = 0
 
+        if material_id == 36500878596:
+            print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB    33333333333: ',  in_data['Converted Price'])
+
         for index, row in in_data.iterrows():
             short_desc = row['PO Item Description'].split(',')
             long_desc = row['Long Description'][:40].split(',') 
-        
+            
             if row['PO Item Quantity Unit'] in ['EA', 'PH', 'BOX', 'PK']:
                 flag = 0
                 desc_word_list  = short_desc            
@@ -556,13 +550,16 @@ def normalize(in_data):
                         desc_word_list  = row['Long Description'].split(',')
                         in_data, flag = update_unit_price(in_data, index, desc_word_list, values_contains)
 
-        material_id = in_data['Material/Service No.'].unique().tolist()[0]
-        if str(material_id) == '382515':
+        if material_id == 36500878596:
+            print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB    4444444444: ',  in_data['Converted Price'])
+
+
+        if str(material_id) == '36500878596':
             print('BEFOREeeeeeeeeeeeeeeeeeeee :  ', in_data.loc[(in_data['Material/Service No.'] == material_id) & (in_data['UoM_label'] != 1)]['Unit Price'])
         
-        in_data = normalization_based_alternative_uom(in_data)
+        in_data = normalization_based_alternative_uom(in_data, "Cavidan")
                         
-        if str(material_id) == '382515':
+        if str(material_id) == '36500878596':
             print('AFTERrrrrrrrrrrrrrrrrrrrrr :  ', in_data.loc[(in_data['Material/Service No.'] == material_id) & (in_data['UoM_label'] != 1)]['Unit Price'])
 
 
@@ -619,34 +616,42 @@ def get_dates(request):
 
     
 def preprocess_search_data(df, input_region):
+
+    df = df[df['PO Item Deletion Flag'] != 'X']
+    df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
     df['Material/Service No.'] =  df['Material/Service No.'].astype('str')
-    df['Manufacturer Part No.'] =  df['Manufacturer Part No.'].astype('str')
+    # df['Manufacturer Part No.'] =  df['Manufacturer Part No.'].astype('int').astype('str')
     df['Manufacturer Name'] =  df['Manufacturer Name'].astype('str')
     df['Vendor Name'] =  df['Vendor Name'].astype('str')
     df['Region'] =  df['Region'].astype('str')
     df['Product Category Description'] = df['Product Category Description'].astype('str')
     df['Product Category'] = df['Product Category'].astype('str')
-    df=df[df['Region']==input_region]
 
-    # df = df[df['PO Item Deletion Flag'] != 'X']
-    # df = df[(df['PO Status Name'] != 'Deleted') & (df['PO Status Name'] != 'Held')]
+    
+    print('\n\n\n')
+    print('11111111111111111111111111: ', df.shape)
+    df=df[df['Region']==input_region]
+    
+    print('22222222222222222222222222: ', df.shape)
 
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
 
     df = df[get_required_columns()]
     df['PO Item Value (GC)'].apply(lambda x : "{:,}".format(x))
-    
+
     df['score'] = -1.0
     df['path'] = ''
     df['desc'] = ''
-    list_of_sources = {}
 
     df['desc_words_short'] = [short_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split() for short_desc in df['PO Item Description'].values]
     df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split() for long_desc in df['Long Description'].values]
     
     df['Manufacturer Part No.'] = df['Manufacturer Part No.'].str.replace(' ', '')
     df['Manufacturer Name'] = df['Manufacturer Name'].str.replace(' ', '')
+
+    print('33333333333333333333333333: ', df.shape)
+    print('\n\n\n')
 
     return df
 

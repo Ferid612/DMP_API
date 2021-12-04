@@ -31,11 +31,7 @@ class DMP_RFP_2(DMP_RFP):
         
 
         DMP_RFP_2.plot_bg='rgba(171, 248, 190, 0.8)'
-        if user == "Farid":
-            df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
-        else:
-            df = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
-
+        df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
         rfp_region_name = DMP_RFP.rfp_region_name
         rfp_vendor_name = DMP_RFP.rfp_vendor_name
         rfp_name = DMP_RFP.rfp_name
@@ -79,10 +75,7 @@ class DMP_RFP_2(DMP_RFP):
         df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
 
         temp_df = df[df['Vendor Name'] == rfp_vendor_name].copy()
-        if user == "Farid":
-            a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-        else:
-            a2a = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\A2A_28_08_2021.csv')
+        a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
         print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 0', temp_df.shape)
         print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 1', a2a.shape)
         new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
@@ -176,28 +169,16 @@ class DMP_RFP_2(DMP_RFP):
         #         if  row['PO Item Quantity Unit'] in a.keys():
         #             new_df.iat[index, new_df.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
         # new_df.iat[index, new_df.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
-        if user ==  "Farid":
-            new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
-        else:
-            new_df.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a.csv')
-
+        new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
         from multiprocessing import Pool
         material_id_list = new_df['Material/Service No.'].value_counts().index.tolist()
         identifier = [2 for i in range(len(material_id_list))]
         with Pool() as pool:
             a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
-        if user == "Farid":
-            a2a_conv.to_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
-        else:
-            a2a_conv.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_conv_new.csv')
-
+        a2a_conv.to_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
         #!  ----------------------------------------- Normalization  End -----------------------------------------
+        new_df  = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\new_df_a2a_conv_new.csv')
 
-        if user == "Farid":
-            new_df  = pd.read_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
-        else:
-            new_df  = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_conv_new.csv')
-        
         non_pricebook_items_count = len(new_df['Material/Service No.'].unique().tolist())
         DMP_RFP_2.non_pricebook_items_count = non_pricebook_items_count
         
@@ -221,12 +202,7 @@ class DMP_RFP_2(DMP_RFP):
         # mask = new_df['Long Description'].apply(lambda x: len(x) > 30)
         # bskt_2 = new_df[~mask]
         # new_df = new_df[mask]
-        
-        if user == "Farid":
-            new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a_new.csv")
-        else:
-            new_df.to_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\new_df_a2a_new.csv')
-    
+        new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a_new.csv")
         print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ ', new_df.shape)
         DMP_RFP_2.new_df=new_df
         aa = DMP_RFP_2.new_df.copy()

@@ -8,8 +8,6 @@ from .helpers import *
 from .custom_logic import *
 
 
-
-
 @csrf_exempt
 def register_user(request):
     if request.method == 'POST':

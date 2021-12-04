@@ -60,13 +60,16 @@ warnings.filterwarnings('ignore')
 
 try:
     if user == "Farid":
-        df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
+        df = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
     else:
         df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
-    df = df[df['Region'] == 'AGT']
+    print('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
 
-    # New conditions
+    df = df[df['Region'] == 'AGT']
+    df = df[df['PO Status Name'] != 'Deleted']
+    df = df[df['PO Status Name'] != 'Held']
+    df = df[df['PO Item Deletion Flag'] != 'X']
 
     all_rows=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","PO Item Description", "Manufacturer Name", "Vendor Name", 
                 "Manufacturer Part No.", "Long Description","PO Item Creation Date","PO Item Quantity", "PO Item Quantity Unit", "PO Item Value (GC)",
@@ -75,18 +78,19 @@ try:
     df = df[all_rows]
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)
+    
     df['score'] = -1.0
     df['path'] = ''
     df['desc'] = ''
-    list_of_sources = {}
-    apple_to_apple = 0
+    
     df['desc_words_short'] = [short_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for short_desc in df['PO Item Description'].values]
     df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for long_desc in df['Long Description'].values]
 
 except:
-    # df = pd.read_csv(r'C:\Users\HP\Desktop\DMP\DMP GIT\Data\df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
     df = pd.DataFrame()
+    print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
 
+   
 def searching_algorithm(item_number, desc_short_in, part_number, manufacture_name, df=df):
 
     tic = time.time()
@@ -112,6 +116,8 @@ def searching_algorithm(item_number, desc_short_in, part_number, manufacture_nam
             apple_to_apple += df_item_part_part.shape[0]
             result = result.append(df_item_part_part)
 
+    
+    
         # -------- END LEFT PART --------
         # Additional case (if item numbers and manufacturer names match check desc if satisfied then take as app to app)
         part_1 = df_item[df_item['Manufacturer Name'].str.contains(manufacture_name)]

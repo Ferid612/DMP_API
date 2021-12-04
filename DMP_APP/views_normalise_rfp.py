@@ -39,12 +39,16 @@ class DMP_RFP_normalise(DMP_RFP):
             approve_list = request.POST.getlist('approve_list[]')
             remove_list = request.POST.getlist('remove_list[]')
  
+            print('approve_listttttttttttttt: ',approve_list)
             #! bug in here
             DMP_RFP.app_to_app_rfp_after_search=DMP_RFP.app_to_app_rfp_after_search_2.copy()
             i=0
             for index in approve_list:
                 DMP_RFP.app_to_app_rfp_after_search.loc[ DMP_RFP.app_to_app_rfp_after_search.index == int(index), 'Unit Price'] =  DMP_RFP.app_to_app_rfp_after_search[ DMP_RFP.app_to_app_rfp_after_search.index == int(index)]['Converted Price']
                 i += 1
+            
+            print('iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii: ', i)
+
             #!bug finished
 
 
@@ -77,7 +81,11 @@ class DMP_RFP_normalise(DMP_RFP):
             DMP_RFP.rfp_vendor_name=vendor_name
             DMP_RFP.rfp_currency_name=currency
             DMP_RFP.rfp_region_name=region_name
+
+        
             DMP_RFP.app_to_app_rfp_after_search.loc[DMP_RFP.app_to_app_rfp_after_search['UoM_label'] != -1, 'Unit Price'] = DMP_RFP.app_to_app_rfp_after_search_2[DMP_RFP.app_to_app_rfp_after_search_2['UoM_label'] != -1]['Converted Price']           
+          
+          
             response = JsonResponse({
                         'result_data_all':  'all',
                     })

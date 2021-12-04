@@ -12,12 +12,13 @@ urlpatterns = [
     path('check_user_status/',custom_logic.check_user_status),
     
     
-    
     path('normalise/',DMP_normalise.normalise),
     path('change_data/',DMP_normalise.change_data),
     path('change_data_all/',DMP_normalise.change_data_all),
 
+
     path('download_csv/',views_csv_download.download_csv),
+
 
     path('search/',DMP.searching),
     path('get_filter_data/',DMP.get_filter_data),
@@ -26,8 +27,10 @@ urlpatterns = [
     path('visual_ajax_5_7/',DMP.visual_ajax_5_7),
     path('visual_ajax_6/',DMP.visual_ajax_6),
 
+
     path('save_app_to_app_in_search/',DMP.save_app_to_app_in_search),
 
+    
     path('login/', custom_logic.login),
     path('register_user/', views_sign_in.register_user),
 

@@ -1,11 +1,10 @@
 from django.http import JsonResponse
-from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt
 import numpy as np
 import math
 import json
 import pandas as pd
-from .views_search_1 import main_searching_algoritm, preprocess_search_data
+from .views_search_1 import main_searching_algoritm
 from .custom_logic import *
 from .helpers import *
 from datetime import date
@@ -37,7 +36,7 @@ class DMP:
             try:
                     
                 #*cheking user status
-                # user_type=check_user_status(request)['user_type']  
+                user_type=check_user_status(request)['user_type']  
                 if 'customer' == 'customer':
                 
                     df=upload_file_helpers(request)
@@ -140,7 +139,6 @@ class DMP:
                     DMP.df_org = processed_df.copy()
                     all_dataframes_from_searching = main_searching_algoritm(DMP.input_material_id, DMP.input_description, DMP.input_manufacturer_part_number, DMP.input_manufacturer_name, processed_df)
                     DMP.all_dataframes_from_searching = all_dataframes_from_searching
-                    
                     DMP.all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
                     DMP.result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])
                     DMP.result_data_app_copy = DMP.result_data_app.copy()
@@ -149,9 +147,8 @@ class DMP:
 
                     DMP.proposed_prices = DMP.convert_usd(DMP.input_proposed_prices, DMP.input_currencies)
                     # get most similar vendor name
-                    print('\033[91m',DMP.all_dataframe.shape,'\033[0m')
-                    
-                    vendor_names_all_dataframe = DMP.all_dataframe['Vendor Name'].value_counts().index.tolist()
+                    vendor_names_all_dataframe = processed_df['Vendor Name'].value_counts().index.tolist()
+                    # print('vendor_names_all_dataframe: ', vendor_names_all_dataframe)
                     input_vendor_names_fuzzy=[]
                     for a in DMP.input_vendor_names:
                         if a not in vendor_names_all_dataframe:  
@@ -161,7 +158,6 @@ class DMP:
                                 lst_a = list(a.replace(' ',''))
                                 s1 = fuzz.partial_ratio(lst_vendor, lst_a)
                                 fuzzy_score.append(s1)
-
                             max_score = max(fuzzy_score)
                             max_score_index = fuzzy_score.index(max_score)
                             result_vendor = vendor_names_all_dataframe[max_score_index]
@@ -246,7 +242,7 @@ class DMP:
                 response = JsonResponse({'error_text':"You have not access"})
                 response.status_code = 501
                 add_get_params(response)
-                return response        
+                return response  
 
     @csrf_exempt
     def get_filter_data(request):
@@ -273,7 +269,7 @@ class DMP:
             return response
         else:
             response = JsonResponse({'this_post': "DMP.total_spend",})
-                    
+                
             add_get_params(response)
             return response
 
@@ -453,7 +449,7 @@ class DMP:
 
             spend = []
 
-            # Last
+        # Last
             last_purchase_df = result[result['PO Item Creation Date'] == result['PO Item Creation Date'].max()].iloc[0]
             last_price = last_purchase_df['Unit Price']
             vendor_last = last_purchase_df['Vendor Name']
@@ -463,7 +459,7 @@ class DMP:
             po_creation_date .insert(0, date_last)
             po_incoterms.insert(0, incoterm_last)
             
-            # Cheapest
+        # Cheapest
             min_price_df = result[result['Unit Price'] ==  result['Unit Price'].min()].iloc[0]
             min_price = min_price_df['Unit Price']
             vendor_lowest = min_price_df['Vendor Name']
@@ -473,7 +469,7 @@ class DMP:
             po_creation_date .insert(0, date_lowest)
             po_incoterms.insert(0, incoterm_lowest)
 
-            # Average     
+        # Average     
             avg_price = result['Unit Price'].mean()
             vendor_names_2.insert(0, ' ')
             po_creation_date .insert(0, ' ')
@@ -488,17 +484,19 @@ class DMP:
 
             delta, colors = find_colors_for_vlines(spend)
             
-            # -------------------------------------  Recommendation Start -------------------------------------
+        # -------------------------------------  Recommendation Start -------------------------------------
             new_flag = 0
             if len(vendor_names) > 1:
                 new_flag =  1
-            DMP.message_recomandation = recommendation_alg(proposed_price, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
-            # -------------------------------------  Recommendation End -------------------------------------
+            print('proposed_price: ', proposed_price)
+            print('DMP.proposed_prices: ', DMP.proposed_prices)
+            DMP.message_recomandation = recommendation_alg(proposed_price, DMP.proposed_prices,  min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
+        # -------------------------------------  Recommendation End -------------------------------------
 
 
-            # # -------------------------------------  Negotiation Start ------------------------------------- 
+        # # -------------------------------------  Negotiation Start ------------------------------------- 
             negotiation_alg(proposed_price, min_price, last_price, avg_price, input_vendor_1)
-            # -------------------------------------  Negotiation End ------------------------------------- 
+        # -------------------------------------  Negotiation End ------------------------------------- 
 
 
             if flag == 1:
@@ -561,7 +559,7 @@ class DMP:
 
             i=0
             for index in idx:
-                if temp[temp['Material/Service No.'] == index].shape[0] > 1 and index != '0':
+                if temp[temp['Material/Service No.'] == index].shape[0] > 1 and index != '#':
                     list_of_idx.append(index)
                     if i == 9:
                         break
@@ -628,19 +626,33 @@ class DMP:
             input_min_date = request.POST.get('input_min_date')
             input_max_date = request.POST.get('input_max_date')
             
-            df = DMP.df_org            
-            a = df[df['Vendor Name'].str.lower()     == vendor_name.lower()]
+            df = DMP.df_org 
+            flag = 1
+            vendor_names_all_dataframe = df['Vendor Name'].str.lower().unique().tolist()
+            if vendor_name not in vendor_names_all_dataframe:  
+                fuzzy_score = []
+                for vendor in vendor_names_all_dataframe:
+                    lst_vendor = list(vendor.lower().replace(' ',''))
+                    lst_a = list(vendor_name.replace(' ',''))
+                    s1 = fuzz.partial_ratio(lst_vendor, lst_a)
+                    fuzzy_score.append(s1)
+
+                max_score = max(fuzzy_score)
+                max_score_index = fuzzy_score.index(max_score)
+                result_vendor = vendor_names_all_dataframe[max_score_index]
+                if max_score >= 0.4:
+                    vendor_name = result_vendor
+                    flag = 0
+            else:
+                vendor_name = vendor_name.lower()
+                flag = 0 
+
+            a = df[df['Vendor Name'].str.lower() == vendor_name.lower()]
             a['PO Item Creation Date'] = pd.DatetimeIndex(a['PO Item Creation Date'])
             a = a[(a['PO Item Creation Date'] >= input_min_date) & (a['PO Item Creation Date'] <= input_max_date)]
             
-
-            print('\nAAAAAAAAAAAAAAAAAAAAAAAAAAA: ', a.shape)
-            print('input_min_date: ', input_min_date)
-            print('input_max_date: ', input_max_date)
-            print('\n')
-            
             total_spend = a['PO Item Value (GC)'].sum() / 1000000
-            DMP.total_spend = str(round(total_spend,2)) + 'M'
+            DMP.total_spend = str(round(total_spend, 2)) + 'M'
 
             b = pd.DataFrame(a.groupby(by=['Product Category'])['PO Item Value (GC)'].sum())
             b.sort_values(by=['PO Item Value (GC)'], ascending=False, inplace=True)
@@ -660,7 +672,6 @@ class DMP:
 
             e = pd.merge(b, a[['Product Category', 'Product Category Description']], 
                         how='left', on='Product Category').drop_duplicates(['Product Category', 'Year'])
-
             c_years = c['Year'].unique().tolist()
             e_years = e['Year'].unique().tolist()
             ls = list(set(c_years) - set(e_years))
@@ -679,7 +690,7 @@ class DMP:
 
             a_line = pd.DataFrame(c.groupby('Year')['PO Item Value (GC)'].sum())
             a_line.reset_index(inplace=True)
-            a_line['PO Item Value (GC) Text'] = a_line['PO Item Value (GC)'].apply(lambda x: str(round(x/1000000,2)) + 'M')
+            a_line['PO Item Value (GC) Text'] = a_line['PO Item Value (GC)'].apply(lambda x: str(round(x/1000000, 2)) + 'M')
 
             fig2 = px.line(a_line, x='Year', y='PO Item Value (GC)', text='PO Item Value (GC) Text')
             fig2.update_traces(textposition='top center')
@@ -687,7 +698,7 @@ class DMP:
 
             fig = update_layout_fig_6(fig, DMP.plot_bg)
             fig.update(layout_coloraxis_showscale=False)
-         
+
             div_6 = opy.plot(fig, auto_open=False, output_type='div')
             
             response = JsonResponse({            
