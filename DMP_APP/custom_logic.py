@@ -4,6 +4,8 @@ from django.http import JsonResponse
 from DMP_API.settings import engine, BASE_DIR
 from sqlalchemy.orm import Session
 import  secrets
+import traceback
+import logging
 
 
 user="Farid"
@@ -16,8 +18,9 @@ def check_user_status(request):
     try:
         input_user_name = request.POST.get('input_user_name')
         input_token = request.POST.get('input_token')
-
-       
+        
+        print("\033[92m input_user_name: " , input_user_name)
+        print("input_token: " , input_token, '\033[0m')
         with Session(engine) as session:
         
             sql_table= (
@@ -42,7 +45,17 @@ def check_user_status(request):
                 user_type="not_user"
                     
     except Exception as e:
-        user_type="not_user"
+        my_traceback = traceback.format_exc()
+        logging.error(my_traceback)
+        print('\33[91m my_traceback_612', my_traceback,'\33[0m')
+        response = JsonResponse({'error_text':str(e),
+                                    'error_text_2':my_traceback
+                                    })
+        response.status_code = 505
+        add_get_params(response)
+        response['user_type'] = user_type
+        return response 
+    
     if user_type != "not_user":
         response = JsonResponse({      
             'user_name': user_name,

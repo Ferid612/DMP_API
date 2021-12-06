@@ -522,7 +522,6 @@ def update_converted_price(in_data, min_label):
     return in_data
 
 def normalize(in_data):
-    print("in data 11111:: ")
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
 

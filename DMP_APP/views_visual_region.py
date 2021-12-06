@@ -26,12 +26,7 @@ from functools import reduce
 
 
 class DMP_Region(DMP_RFP):
-    @csrf_exempt
-    def test_function(request):
-        response=JsonResponse({"Data":"data"})
-        add_get_params(response)
-        
-        return response
+
 
 
     #!!!   region data

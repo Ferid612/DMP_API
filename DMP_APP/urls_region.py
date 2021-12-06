@@ -3,7 +3,7 @@ from .views_visual_region import *
 from .views_normalise_region import *
 urlpatterns = [
 
-    path('test_function/',DMP_Region.test_function),
+  
     path('search_region/',DMP_Region.search_region),
     path('search_region_new/',DMP_Region.search_region_new),
     path('upload_file/',DMP_Region.upload_file),
