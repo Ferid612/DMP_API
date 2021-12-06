@@ -69,7 +69,7 @@ class DMP_Region(DMP_RFP):
     def search_region_new(request):
         
         pb_df=DMP_Region.uploaded_region_file
-        a2a = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\A2A_28_08_2021.csv',  error_bad_lines=False, dtype="unicode", parse_dates=['PO Item Creation Date'])
+        a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv',  error_bad_lines=False, dtype="unicode", parse_dates=['PO Item Creation Date'])
         DMP_Region.a2a=a2a
 
         

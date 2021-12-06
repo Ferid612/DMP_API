@@ -15,7 +15,6 @@ def check_user_status(request):
     
     try:
         input_user_name = request.POST.get('input_user_name')
-        input_mail = request.POST.get('input_mail')
         input_token = request.POST.get('input_token')
 
        

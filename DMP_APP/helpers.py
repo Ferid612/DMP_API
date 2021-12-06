@@ -352,6 +352,7 @@ def get_curency_data():
 def parallel_uom(material_id, identifier):
     if identifier == 1:
         a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
+    
     elif identifier == 2:
         a2a = pd.read_csv(str(BASE_DIR) + '/static/new_df_a2a.csv')
 
@@ -363,8 +364,12 @@ def parallel_uom(material_id, identifier):
         print('36500878596  :', material_id)
 
     a2a_conv = pd.DataFrame(columns=a2a.columns,)
-    temp_df = a2a.loc[a2a['Material/Service No.'] == material_id]
     
+    temp_df = a2a.loc[a2a['Material/Service No.'] == material_id]
+    if temp_df.shape[0] == 0:
+        print('MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM, ', material_id)
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, ', a2a.shape)
+        
     temp_df = normalize(temp_df)
     
     return temp_df
@@ -517,7 +522,7 @@ def update_converted_price(in_data, min_label):
     return in_data
 
 def normalize(in_data):
-   
+    print("in data 11111:: ")
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
 
@@ -526,6 +531,7 @@ def normalize(in_data):
 
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
+    
     material_id = in_data['Material/Service No.'].unique().tolist()[0]
 
     if in_data.shape[0] > 0:

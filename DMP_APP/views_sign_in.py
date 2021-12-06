@@ -31,7 +31,7 @@ def register_user(request):
         "From: "+ full_name, #subject
         "User Email: "+email+"\n Request for discount: "+message,    #message
         email, #from email
-        ["hebibliferid20@gmail.com"],     html_message=html_message)
+        ["hebibliferid20@gmail.com","cavidan5889@gmail.com","dmp.prodigitrack@gmail.com", ""],     html_message=html_message)
         except Exception as e:
             print("mail sending error: ", e)
 

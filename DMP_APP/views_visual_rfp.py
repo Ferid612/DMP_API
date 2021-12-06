@@ -1161,7 +1161,7 @@ class DMP_RFP(DMP):
             vendor_name = DMP_RFP.rfp_vendor_name
             vendor_name = vendor_name.lower()
             
-            df=DMP_RFP.df_full.copy()
+            df = DMP_RFP.df_full.copy()
             df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
             df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
             
@@ -1211,6 +1211,7 @@ class DMP_RFP(DMP):
                     
                     e = pd.merge(b, a[['Product Category', 'Product Category Description']],  
                                  how='left', on='Product Category').drop_duplicates(['Product Category', 'Year'])
+                    
                     c_years = c['Year'].unique().tolist()
                     e_years = e['Year'].unique().tolist()
                     ls = list(set(c_years) - set(e_years))
@@ -1224,6 +1225,8 @@ class DMP_RFP(DMP):
 
                     e.reset_index(drop=True, inplace=True)
                     e.sort_values('Year', inplace=True)
+                    
+                    
                     fig = px.bar(e, x='Year', y='PO Item Value (GC)', color='Product Category Description', 
                         barmode='stack', text='PO Item Value (GC) Text', color_discrete_sequence=px.colors.qualitative.Set3,)
                     fig.update_traces(marker_line_width=0)
@@ -1342,7 +1345,7 @@ class DMP_RFP(DMP):
 
 
         #!  ------------------------- START  Evaluation for non-pricebook items -------------------------
-        df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_new.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+        df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
 
         df = df[df['Region'] == DMP_RFP.rfp_region_name]
         df = df[df['PO Item Deletion Flag'] != 'X']
@@ -1360,7 +1363,7 @@ class DMP_RFP(DMP):
 
 
         temp_df = df[(df['Vendor Name'].str.lower() == DMP_RFP.rfp_vendor_name.lower())].copy()
-        a2a = pd.read_csv(str(BASE_DIR) + '/static/files\A2A_28_08_2021.csv')
+        a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
 
         new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
         # # Step - 1  (material id: yes   |   part number: yes)
@@ -1565,7 +1568,7 @@ class DMP_RFP(DMP):
             # unique_increase_df.to_csv('unique_increase_df.csv')    # Have to display in UI 
             message = "Dear supplier " + DMP_RFP.rfp_vendor_name + ", our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
             print('Recommendation: ', message)
-            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials.html" target="_blank">Link for materials that has risen in price</a></h4>'
+            html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
             rec_case_1=message
             
             new_message  = strip_tags(html_message)
@@ -1580,7 +1583,7 @@ class DMP_RFP(DMP):
             "From: "+ full_name, #subject
             "User Email: "+email+"\n Request for discount: "+message,    #message
             email, #from email
-            ["hebibliferid20@gmail.com", "cavidan5889@gmail.com"],     html_message=html_message)
+            ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.prodigitrack@gmail.com"],     html_message=html_message)
             except Exception as e:
                 print("mail sending error: ", e)
         response = JsonResponse({            

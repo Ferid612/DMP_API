@@ -169,6 +169,8 @@ class DMP_RFP_2(DMP_RFP):
         #         if  row['PO Item Quantity Unit'] in a.keys():
         #             new_df.iat[index, new_df.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
         # new_df.iat[index, new_df.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
+        new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
+        new_df = new_df[new_df['PO Item Creation Date'] >= '2018-01-01']
         new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
         from multiprocessing import Pool
         material_id_list = new_df['Material/Service No.'].value_counts().index.tolist()
@@ -177,7 +179,7 @@ class DMP_RFP_2(DMP_RFP):
             a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
         a2a_conv.to_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
         #!  ----------------------------------------- Normalization  End -----------------------------------------
-        new_df  = pd.read_csv(r'C:\Users\DRL-Team\Desktop\DMP\files\new_df_a2a_conv_new.csv')
+        new_df  = pd.read_csv(str(BASE_DIR) + '/static/new_df_a2a_conv_new.csv')
 
         non_pricebook_items_count = len(new_df['Material/Service No.'].unique().tolist())
         DMP_RFP_2.non_pricebook_items_count = non_pricebook_items_count
@@ -1459,8 +1461,11 @@ class DMP_RFP_2(DMP_RFP):
         if request.method =='POST':
             
             df = DMP_RFP_2.df.copy()
-            # df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
-            # df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
+            input_min_date= request.POST.get('input_min_date')
+            input_max_date= request.POST.get('input_max_date')
+            
+            df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
+            df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
 
             input_min_date= request.POST.get('input_min_date')
             input_max_date= request.POST.get('input_max_date')
@@ -1596,7 +1601,7 @@ class DMP_RFP_2(DMP_RFP):
                         width=690,
                         plot_bgcolor='rgba(255,255,255,0.5)',
                         )
-                    fig.update_xaxes(type='category',     tickformat="%Y", )
+                    # fig.update_xaxes(type='category',     tickformat="%Y", )
 
                     fig.update_layout(xaxis=dict(tickformat="%Y"))          
                     fig.update_layout(legend=dict(

@@ -229,7 +229,7 @@ def negotiation_alg(proposed_price_rec, lowest_purchase_price_rec, last_purchase
         "From: "+ full_name, #subject
         "User Email: "+email+"\n Request for discount: "+html_message,    #message
         email, #from email
-        ["hebibliferid20@gmail.com", "cavidan5889@gmail.com"],     html_message=html_message)
+        ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.prodigitrack@gmail.com"],     html_message=html_message)
 
         except Exception as e:
             print("mail sending error: ", e)
@@ -256,8 +256,8 @@ def find_colors_for_vlines(spend):
 def update_layout_fig_6(fig, plot_bg_color):
 
     fig.update_layout(title="", xaxis_title="", yaxis_title="Total Spend, $", legend_title="Category names", height=450, width=640, plot_bgcolor=plot_bg_color,)
-    fig.update_xaxes(type='category',     tickformat="%Y", )
-    fig.update_layout(xaxis=dict(tickformat="%Y"))          
+    # fig.update_xaxes(type='category',     tickformat="%Y", )
+    # fig.update_layout(xaxis=dict(tickformat="%Y"))          
 
     fig.update_layout(legend=dict( yanchor="top", y=1, xanchor="left", x=0.00))
 

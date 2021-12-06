@@ -350,11 +350,13 @@ class DMP:
             a['New PO Item Value (GC)'] = a['New PO Item Value (GC)'].astype('float').astype(int)
             a['Year'] = a['PO Item Creation Date'].dt.year
             a['Year'] = pd.to_datetime(a.Year, format='%Y')
+            
             a = pd.DataFrame(a.groupby(by=['Year', 'Vendor Name'])['New PO Item Value (GC)'].sum())
             a2 = pd.DataFrame(a.groupby(by=['Year'])['New PO Item Value (GC)'].sum())
             max_val = a2['New PO Item Value (GC)'].max()
             a['New PO Item Value (GC) Text'] =  a['New PO Item Value (GC)'].apply(lambda x : "{:,}".format(x))
             a.reset_index(inplace=True)
+           
             a['Year'] = pd.DatetimeIndex(a['Year'])
             a['Year'] = a['Year'].dt.year
 
@@ -624,7 +626,7 @@ class DMP:
             input_min_date = request.POST.get('input_min_date')
             input_max_date = request.POST.get('input_max_date')
             
-            df = DMP.df_org 
+            df = DMP.df_org
             flag = 1
             vendor_names_all_dataframe = df['Vendor Name'].str.lower().unique().tolist()
             if vendor_name not in vendor_names_all_dataframe:  
@@ -670,6 +672,7 @@ class DMP:
 
             e = pd.merge(b, a[['Product Category', 'Product Category Description']], 
                         how='left', on='Product Category').drop_duplicates(['Product Category', 'Year'])
+            
             c_years = c['Year'].unique().tolist()
             e_years = e['Year'].unique().tolist()
             ls = list(set(c_years) - set(e_years))

@@ -81,11 +81,9 @@ try:
     df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for long_desc in df['Long Description'].values]
 except Exception as e:
     df = pd.DataFrame()
-    logging.warning('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
     logging.warning(e)
    
 def searching_algorithm(item_number, desc_short_in, part_number, manufacture_name, df=df):
-    
     
     tic = time.time()
 

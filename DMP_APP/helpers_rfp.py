@@ -362,9 +362,6 @@ def update_layout_fig_1_2(plot_bg_color):
 
     return fig
 
-
-
-
 def plot_2_1_pb(fig, all_drop_df, sorted_list):
     
     groups = all_drop_df.groupby("Material # + percentage")
@@ -551,8 +548,6 @@ def update_layout_fig_2_1(fig):
     fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='rgb(230, 230, 230)')
 
     return fig
-
-
 
 
 def plot_3_1_pb(fig, all_increase_df, sorted_list):
@@ -894,7 +889,7 @@ def update_layout_fig_5_1(fig, y_, delta,  total_spends, colors, count):
 def update_layout_fig_6(fig, plot_bg_color):
 
     fig.update_layout(title="", xaxis_title="", yaxis_title="Total Spend, $", legend_title="Category names", height=450, width=640, plot_bgcolor=plot_bg_color,)
-    fig.update_xaxes(type='category',     tickformat="%Y", )
+    # fig.update_xaxes(type='category',     tickformat="%Y", )
     fig.update_layout(xaxis=dict(tickformat="%Y"))          
 
     fig.update_layout(legend=dict( yanchor="top", y=1, xanchor="left", x=0.00))
