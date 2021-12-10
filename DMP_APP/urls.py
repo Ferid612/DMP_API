@@ -10,6 +10,8 @@ urlpatterns = [
     path('upload_file_historical/',DMP.upload_file_historical),
     path('check_file_historical/',DMP.check_file_historical),
     path('check_user_status/',custom_logic.check_user_status),
+    path('upload_sql_table/',custom_logic.upload_sql_table),
+    
     
     
     path('normalise/',DMP_normalise.normalise),

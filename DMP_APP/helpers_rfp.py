@@ -334,6 +334,7 @@ def update_layout_fig_1_1(fig):
 
     return fig
 
+
 def update_layout_fig_1_2(plot_bg_color):
 
     fig = go.Figure(go.Bar(

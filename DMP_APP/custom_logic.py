@@ -6,10 +6,69 @@ from sqlalchemy.orm import Session
 import  secrets
 import traceback
 import logging
-
-
+import pandas as pd
 user="Farid"
 # user="Javidan"
+
+
+
+
+
+
+
+
+@csrf_exempt
+def upload_sql_table(request):
+    user_type = "not_user"
+    file_name = 'pricebook'
+    
+    try:
+        input_user_name = request.POST.get('input_user_name')
+        input_token = request.POST.get('input_token')
+        
+        print("\033[92m input_user_name: " , input_user_name)
+        print("input_token: " , input_token, '\033[0m')
+        
+        # creat SQL TABLE With pandas dataframe
+        
+        with Session(engine) as session:
+            df = pd.read_csv(str(BASE_DIR) + '/static/connection_supplier_customer.csv')
+            df.to_sql(file_name, engine, if_exists='replace', index=False)
+
+
+
+    except Exception as e:
+        my_traceback = traceback.format_exc()
+        logging.error(my_traceback)
+        print('\33[91m my_traceback_612', my_traceback,'\33[0m')
+        response = JsonResponse({'error_text':str(e),
+                                    'error_text_2':my_traceback
+                                    })
+        response.status_code = 505
+        add_get_params(response)
+        response['user_type'] = user_type
+        return response 
+
+    try:            
+        with engine.connect() as con:
+            # query_1='ALTER TABLE '+file_name.lower()+ ' ALTER COLUMN '+file_name.lower() +'_ID SET NOT NULL;'            
+            query_2='ALTER TABLE '+file_name.lower()+ ' ADD PRIMARY KEY (pricebook_id);'
+            # con.execute(query_1)  
+            con.execute(query_2)
+    except Exception as e:
+        print("\033[93m eerror in primari key: ",e)
+
+
+
+
+
+    response = JsonResponse({      
+    'user_type':user_type
+    })
+    add_get_params(response)
+    response['user_type'] = user_type
+    print("\033[92m Uploaded to SQL DATABASE SUCCESSFULLY" '\033[0m')
+    return response
 
 @csrf_exempt
 def check_user_status(request):
@@ -21,6 +80,14 @@ def check_user_status(request):
         
         print("\033[92m input_user_name: " , input_user_name)
         print("input_token: " , input_token, '\033[0m')
+        
+        
+        # keyss = "myencryptionkeyhere"
+        # cyper_user = Fernet(keyss)
+        
+        # print("\033[91m cipher_suite: " ,cyper_user)
+        
+        
         with Session(engine) as session:
         
             sql_table= (
