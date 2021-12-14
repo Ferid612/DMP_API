@@ -86,19 +86,6 @@ class DMP_pricessbook:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     @csrf_exempt
     def pricebook_table(request):
         # Build the POST parameters
@@ -110,12 +97,8 @@ class DMP_pricessbook:
                                     
                     pricebook_name=request.POST.get('pricebook_name')
                     print("pricebook_name: ",pricebook_name)
-                    
-                    
                 
                     pricebook_table = pd.read_csv(str(BASE_DIR) + "/static/pricebooks/"+pricebook_name+".csv",error_bad_lines=False, dtype="unicode",  index_col=False)
-                
-
                     # pricebook_table = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\4410014947_price_book.csv',error_bad_lines=False, dtype="unicode",  index_col=False)
 
                     try:
@@ -135,10 +118,6 @@ class DMP_pricessbook:
                         pass
 
                     DMP_pricessbook.pricebook_table=pricebook_table
-
-                
-
-
 
 
                     pricebook_columns=pricebook_table.columns.tolist()

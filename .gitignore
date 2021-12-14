@@ -100,8 +100,15 @@ local_settings.py
 
 .env
 db.sqlite3
+# static/df_all_regions_uploaded.csv
+# static/uploaded_historical_data.csv
+# static/unique_increase_df.csv
+# static/A2A_28_08_2021.csv
+# static/A2A_28_08_2021.csv
 static/df_all_regions_uploaded.csv
 static/uploaded_historical_data.csv
-static/unique_increase_df.csv
-static/A2A_28_08_2021.csv
-static/A2A_28_08_2021.csv
+static/pricebooks/solar_price_book_3.csv
+static/pricebooks/solar_price_book_2.csv
+static/pricebooks/petrochem_1.csv
+static/pricebooks/solar_price_book.csv
+static/pricebooks/solar_price_book.csv

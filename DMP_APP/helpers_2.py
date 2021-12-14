@@ -122,66 +122,102 @@ def update_layout_fig_4(fig, spend, delta, y_, y_2, colors, plot_bg_color):
 
     return fig
 
-def recommendation_alg(prospoed_price_rec, lowest_purchase_price_rec, last_purchase_price_rec, average_purchase_price_rec, item_quantity, vendor_name, min_ven_name, min_ven_val, flag):
+def recommendation_alg(prospoed_price_rec, proposed_prices, lowest_purchase_price_rec, last_purchase_price_rec, average_purchase_price_rec, item_quantity, vendor_name, min_ven_name, min_ven_val, flag):
 
-    
-    savings = round((last_purchase_price_rec - prospoed_price_rec)*item_quantity, 2)
-    best_savings = round((last_purchase_price_rec - min_ven_val)*item_quantity, 2)
-    
-    message_recomandation = ""
-    if prospoed_price_rec < lowest_purchase_price_rec:
-        if vendor_name == min_ven_name and flag == 1:
-            message_recomandation='Price is lower than the lowest purchase price and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
+    temp_flag_unique = 0
+    for pro_price in proposed_prices:
+        if prospoed_price_rec < lowest_purchase_price_rec:
+            temp_flag_unique += 1
+            print('pro_price 111: ', pro_price)
+            continue
         
-        elif vendor_name == min_ven_name and flag == 0:
-            message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
+        elif pro_price < last_purchase_price_rec and pro_price < average_purchase_price_rec:
+            temp_flag_unique += 1
+            print('pro_price 222: ', pro_price)
+            continue
         
-        else:
-            message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
-
-
-    elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
-    
-        
-        if vendor_name == min_ven_name and flag == 1:
-            message_recomandation='Price is lower than last and average purchase price and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
-        
-        elif vendor_name == min_ven_name and flag == 0:
-            message_recomandation='Price is lower than last and average purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '.'
-
-        else:
-            message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
-        
-
-    elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec > average_purchase_price_rec:
-        lower_percentage = round((last_purchase_price_rec - prospoed_price_rec) / last_purchase_price_rec , 2) * 100
-        higher_percentage = round((prospoed_price_rec - average_purchase_price_rec) / average_purchase_price_rec, 2) * 1000
-        if lower_percentage > higher_percentage:
-    
-            if vendor_name == min_ven_name and flag == 1:
-                message_recomandation= "Price is lower than last purchase " +  str(round(lower_percentage))  + "% and higher than average purchase price " +  str(round(higher_percentage))  + "%, and also is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $" + str(savings)
+        elif pro_price < last_purchase_price_rec and pro_price > average_purchase_price_rec:
+            lower_percentage = round((last_purchase_price_rec - pro_price) / last_purchase_price_rec , 2) * 100
+            higher_percentage = round((pro_price - average_purchase_price_rec) / average_purchase_price_rec, 2) * 1000
             
-            elif vendor_name == min_ven_name and flag == 0:
-                message_recomandation="Price is lower than last purchase " +  str(round(lower_percentage))  + "% and higher than average purchase price " +  str(round(higher_percentage))  + "%, hence recommended to accept. Savings for the next purchase batch is $" + str(savings)
+            if lower_percentage > higher_percentage:
+                temp_flag_unique += 1
+                print('pro_price 333: ', pro_price)
+                continue
+
                 
+        elif pro_price > last_purchase_price_rec and pro_price < average_purchase_price_rec:
+            higher_percentage = round((pro_price - last_purchase_price_rec) / last_purchase_price_rec , 2) * 100
+            lower_percentage = round((average_purchase_price_rec - pro_price) / average_purchase_price_rec, 2) * 100
+                
+            if lower_percentage > higher_percentage:
+                temp_flag_unique += 1
+                print('pro_price 444: ', pro_price)
+                continue
+    print('temp_flag_unique: ', temp_flag_unique)
+    if temp_flag_unique == 0:
+        pass
+    
+    elif temp_flag_unique == 1:
+
+        savings = round((last_purchase_price_rec - prospoed_price_rec) * item_quantity, 2)
+        best_savings = round((last_purchase_price_rec - min_ven_val) * item_quantity, 2)
+
+        message_recomandation = ""
+        if prospoed_price_rec < lowest_purchase_price_rec:
+            if vendor_name == min_ven_name:
+                message_recomandation='Price is lower than the lowest purchase price and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
             else:
-                message_recomandation = 'Price is lower than last purchase ' +  str(round(lower_percentage))  + '% and higher than average purchase price ' +  str(round(higher_percentage))  + '%,  hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
-            
+                message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
+
+
+        elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
         
-    elif prospoed_price_rec > last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
-        higher_percentage = round((prospoed_price_rec - last_purchase_price_rec) / last_purchase_price_rec , 2) * 100
-        lower_percentage = round((average_purchase_price_rec - prospoed_price_rec) / average_purchase_price_rec, 2) * 100
-        if lower_percentage > higher_percentage:
             
             if vendor_name == min_ven_name and flag == 1:
-                message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
+                message_recomandation='Price is lower than last and average purchase price and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
             
             elif vendor_name == min_ven_name and flag == 0:
-                message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, hence recommended to accept. Savings for the next purchase batch is $' +  + str(savings)
-            
-            else:
-                message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
+                message_recomandation='Price is lower than last and average purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '.'
 
+            else:
+                message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
+            
+
+        elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec > average_purchase_price_rec:
+            lower_percentage = round((last_purchase_price_rec - prospoed_price_rec) / last_purchase_price_rec , 2) * 100
+            higher_percentage = round((prospoed_price_rec - average_purchase_price_rec) / average_purchase_price_rec, 2) * 1000
+            
+            if lower_percentage > higher_percentage:
+        
+                if vendor_name == min_ven_name and flag == 1:
+                    message_recomandation= "Price is lower than last purchase " +  str(round(lower_percentage))  + "% and higher than average purchase price " +  str(round(higher_percentage))  + "%, and also is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $" + str(savings)
+                
+                elif vendor_name == min_ven_name and flag == 0:
+                    message_recomandation="Price is lower than last purchase " +  str(round(lower_percentage))  + "% and higher than average purchase price " +  str(round(higher_percentage))  + "%, hence recommended to accept. Savings for the next purchase batch is $" + str(savings)
+                    
+                else:
+                    message_recomandation = 'Price is lower than last purchase ' +  str(round(lower_percentage))  + '% and higher than average purchase price ' +  str(round(higher_percentage))  + '%,  hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
+                
+            
+        elif prospoed_price_rec > last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
+            higher_percentage = round((prospoed_price_rec - last_purchase_price_rec) / last_purchase_price_rec , 2) * 100
+            lower_percentage = round((average_purchase_price_rec - prospoed_price_rec) / average_purchase_price_rec, 2) * 100
+            if lower_percentage > higher_percentage:
+                
+                if vendor_name == min_ven_name and flag == 1:
+                    message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, and is the best price among the proposed prices, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
+                
+                elif vendor_name == min_ven_name and flag == 0:
+                    message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, hence recommended to accept. Savings for the next purchase batch is $' +  + str(savings)
+                
+                else:
+                    message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, hence recommended to accept. Savings for the next purchase batch is $' + str(savings) + '. But vendor ' + str(min_ven_name) + ' proposed the best price: $' + str(round(min_ven_val, 2)) + ' among the proposed prices. Savings for the next purchase batch can be $' + str(best_savings) + ', if you accept offer from ' + min_ven_name + '.'
+
+       
+    else:
+        pass
+                        
 
 
     return message_recomandation
@@ -257,7 +293,7 @@ def update_layout_fig_6(fig, plot_bg_color):
 
     fig.update_layout(title="", xaxis_title="", yaxis_title="Total Spend, $", legend_title="Category names", height=450, width=640, plot_bgcolor=plot_bg_color,)
     # fig.update_xaxes(type='category',     tickformat="%Y", )
-    # fig.update_layout(xaxis=dict(tickformat="%Y"))          
+    fig.update_layout(xaxis=dict(tickformat="%Y"))          
 
     fig.update_layout(legend=dict( yanchor="top", y=1, xanchor="left", x=0.00))
 

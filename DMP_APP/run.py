@@ -15,7 +15,6 @@
 # import requests
 # from datetime import date
 # from search_alg_parallel_short import *
-# from DMP_API.settings import BASE_DIR
 
 # import warnings
 # warnings.filterwarnings('ignore')

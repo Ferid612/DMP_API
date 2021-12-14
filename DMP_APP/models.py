@@ -1,6 +1,8 @@
 from sqlalchemy.ext.automap import automap_base
 from DMP_API.settings import engine
-
+from sqlalchemy import Column, String, Integer, create_engine, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker 
+from datetime import datetime
 
 # Reflect existing database into SqlAlchemy models
 Base = automap_base()

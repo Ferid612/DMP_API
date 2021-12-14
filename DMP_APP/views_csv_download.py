@@ -26,14 +26,16 @@ def download_csv(request):
         
         # * change dataframe to csv file and return whith response 
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename=App_to_app_{datetime.now().strftime("%Y.%m.%d_%H.%M")}.csv'  # alter as needed
+        # response['Content-Disposition'] = f'attachment; filename=App_to_app_{datetime.now().strftime("%Y.%m.%d_%H.%M")}.csv'  # alter as needed
+        response['Content-Disposition'] = f'attachment; filename=App_to_app.csv'  # alter as needed
+        
         df.to_csv(path_or_buf=response, index= False)  # with other applicable parameters
         return response
     
     else:
         df=pd.DataFrame()
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename=YOU_HAVE_NOT_ACCESS_{datetime.now().strftime("%Y.%m.%d_%H.%M")}.csv'  # alter as needed
+        response['Content-Disposition'] = f'attachment; filename=YOU_HAVE_NOT_ACCESS.csv'  # alter as needed
         df.to_csv(path_or_buf=response, index= False)  # with other applicable parameters
         return response
         

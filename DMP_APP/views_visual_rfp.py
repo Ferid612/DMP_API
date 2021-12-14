@@ -1,27 +1,32 @@
+# RFP(Pricebook) Data Visualization
+from DMP_API.settings import BASE_DIR
 from .views_visual_1 import *
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from numpy.lib.shape_base import dsplit
 import numpy as np
 import pandas as pd
 import json
+import random
+from random import randint
+import matplotlib.pyplot as plt
 import time
 from .worker import *
 import plotly.graph_objects as go
 import plotly.express as px
 import re
-
+import urllib
+import requests
+from datetime import date
 import datetime
 import datetime as dt
 from .helpers import *
 from functools import reduce
-from DMP_API.settings import BASE_DIR
+from .custom_logic import *
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.cluster import DBSCAN
 from importlib import reload
-# from .search_alg_parallel import searching_algorithm
 import sys
 import importlib
 from DMP_APP import search_alg_parallel
@@ -43,7 +48,6 @@ class DMP_RFP(DMP):
         response=JsonResponse({"Data":"data"})
         add_get_params(response)
         return response
-
 
     @csrf_exempt 
     def upload_file_historical(request): 
@@ -89,11 +93,11 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
-                        
+
                     currency_content = get_curency_data()
                     currency = str(DMP_RFP.rfp_currency_name)
                     currency_ratio = currency_content['USD' + currency]
-                    rfp_region_name = str(DMP_RFP.rfp_region_name)
+                    rfp_region_name = str(DMP_RFP.rfp_region_name)    
                     pb_df = DMP_RFP.uploaded_rfp_file
 
                     #! Automatically change column names if needed
@@ -107,17 +111,16 @@ class DMP_RFP(DMP):
                     tic = time.time()
                     print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
                     DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', index=False)
-                    df_all_regions_uploaded_check= pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv')
                     reload(search_alg_parallel)
             
-                    # with Pool() as pool:
-                    #     result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
-                    # result = result[~result.index.duplicated(keep='first')]
+                    with Pool() as pool:
+                        result = pd.concat(pool.starmap(search_alg_parallel.searching_algorithm, zip(a, b, c, d)))
+                    result = result[~result.index.duplicated(keep='first')]
 
-                    # toc = time.time()
-                    # print('Total Runtime for RFP: ', toc-tic)
+                    toc = time.time()
+                    print('Total Runtime for RFP: ', toc-tic)
 
-                    # result.to_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
+                    result.to_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
                     a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
 
 
@@ -130,6 +133,8 @@ class DMP_RFP(DMP):
                     
                     with Pool() as pool:
                         a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
+                    # a2a_conv = a2a.copy()
+                    # a2a_conv['Converted Price'] = a2a_conv['Unit Price']
 
                     display_converted_uom_rfp=True
                     if a2a_conv.shape[0] == a2a_conv[a2a_conv['Unit Price'] == a2a_conv['Converted Price']].shape[0] or a2a_conv.shape[0] == a2a_conv[a2a_conv['UoM_label'] == 1].shape[0]:
@@ -201,12 +206,14 @@ class DMP_RFP(DMP):
 
                     DMP_RFP.list_of_regions=list_of_regions
 
-                    # ! ****************** end Region searching ******************
+                # ! ****************** end Region searching ******************
 
-                    #************ RFP searching section start**********************#!****        
+                #************ RFP searching section start**********************#!****        
                     DMP_RFP.df_full =  DMP_RFP.uploaded_historical_data[DMP_RFP.uploaded_historical_data['Region'] == DMP_RFP.rfp_region_name]        
                     DMP_RFP.df_full = DMP_RFP.df_full[(DMP_RFP.df_full['PO Status Name'] != 'Deleted') & (DMP_RFP.df_full['PO Status Name'] != 'Held') & (DMP_RFP.df_full['PO Item Deletion Flag'] != 'X')]
-                
+                    DMP_RFP.df_full['PO Item Description'] = DMP_RFP.df_full['PO Item Description'].replace(np.nan, ' ', regex=True)    
+                    DMP_RFP.df_full['Long Description'] = DMP_RFP.df_full['Long Description'].replace(np.nan, ' ', regex=True)
+
                     DMP_RFP.df_full['PO Item Creation Date'] = pd.DatetimeIndex(DMP_RFP.df_full['PO Item Creation Date'])
                     DMP_RFP.min_date = DMP_RFP.df_full.loc[DMP_RFP.df_full['PO Item Creation Date'].idxmin()]['PO Item Creation Date'].strftime('%Y-%m-%d')
                     DMP_RFP.max_date = DMP_RFP.df_full.loc[DMP_RFP.df_full['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].strftime('%Y-%m-%d')
@@ -232,149 +239,7 @@ class DMP_RFP(DMP):
                     #!333333
 
 
-                    def normalize(app_rfp_df):
-
-                        types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 217.72, 'LB':0.45},
-                                        'Area':   {'M2': 1, 'JO': 1.6},
-                                        'Length': {'M': 1, 'FT': 0.3048, 'LN': 1, 'LS': 1, 'IN': 0.0254, 'KM': 1000, 'ROL': 1, 'FOT': 0.3048},
-                                        'Volume': {'L': 1, 'DR': 208.2, 'GAL': 3.79, 'M3': 1000, 'PL': 1, 'ML': 0.001, 'BTL': 0.75} }
-
-
-                        i = 0
-                        for index, row in app_rfp_df.iterrows():
-                            for key in types_of_UoM:
-                                a = types_of_UoM[key]
-                                if  row['UOM'] in a.keys():
-                                    print('BP Material / Service Master No.', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('BP Material / \nService Master No.')])
-                                    print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')])
-                                    print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')])
-                                    print('a[row[UOM]]', a[row['UOM']])
-
-                                    app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] / a[row['UOM']]
-                                    app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] / a[row['UOM']]
-                                    app_rfp_df.iat[i, app_rfp_df.columns.get_loc('UOM')] = next(iter(a))
-                            i += 1
-                        
-                        values_contains = ['pack of', '/pack', 'pk of', '/pk', 'pkt of', '/pkt', 'per pack', 'drum of']
-                        values_ends = ['/pac', '/pa', '/p']
-                        app_rfp_df['UOM_label'] = 0
-                        
-                        try:
-                            app_rfp_df.reset_index(inplace=True, drop=True)
-                        except:
-                            pass
-
-                        list_of_mids = []
-                        for index, row in app_rfp_df.iterrows():
-                            material_id = row['BP Material / \nService Master No.']
-                            supp_desc = row['Supplier Description'].split(',')
-                            short_desc = row['BP Short Description'].split(',')
-                            long_desc = row['BP Long Description'][:40].split(',') 
-                            material_id = str(material_id).replace(' ', '')
-                            if material_id == '11045408':
-                                print('11111111111111111111111111111111111111111111111111    Unit Price: ', app_rfp_df.loc[index, '2021 rates'])
-
-                            if row['UOM'] in ['EA', 'PH', 'BOX', 'PK']:
-                                flag = 0
-                                desc_word_list  = list(set(supp_desc).union(set(short_desc)))
-                                for word in desc_word_list:
-                                    for value in values_contains:
-                                        if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
-                                            newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
-                                            listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                            if len(listOfNumbers) > 1:
-                                                try:
-                                                    newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
-                                                    listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                                    if len(listOfNumbers) == 0:
-                                                        listOfNumbers = re.findall(r'\d+', newstr)
-
-                                                    if len(listOfNumbers) == 0:
-                                                        newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
-                                                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                                        if len(listOfNumbers) == 0:
-                                                            listOfNumbers = re.findall(r'\d+', newstr)
-
-                                                except:
-                                                    continue
-                                            if len(listOfNumbers) != 1:
-                                                continue
-                                            each_count = listOfNumbers[0]
-                                            list_of_mids.append(row['BP Material / \nService Master No.'])
-                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
-                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
-                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
-                                            app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
-                                            row['UOM_label'] = 1
-                                            flag = 1
-                                            break
-                                    if flag == 1:
-                                        break
-
-                                if flag == 0:  
-                                    if fuzz.partial_ratio(short_desc, long_desc) >= 50:
-                                        desc_word_list  = row['BP Long Description'].split(',') 
-                                        for word in desc_word_list:
-                                            for value in values_contains:
-                                                if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
-                                                    newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
-                                                    listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-
-                                                    if len(listOfNumbers) > 1:
-                                                        try:
-                                                            newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
-                                                            listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                                            if len(listOfNumbers) == 0:
-                                                                listOfNumbers = re.findall(r'\d+', newstr)
-
-                                                            if len(listOfNumbers) == 0:
-                                                                newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
-                                                                listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
-                                                                if len(listOfNumbers) == 0:
-                                                                    listOfNumbers = re.findall(r'\d+', newstr)
-
-                                                        except:
-                                                            continue
-                                                    if len(listOfNumbers) != 1:
-                                                        continue
-                                                    each_count = listOfNumbers[0]
-                                                
-                                                    list_of_mids.append(row['BP Material / \nService Master No.'])
-                                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
-                                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
-                                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
-                                                    app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
-                                                    row['UOM_label'] = 1
-                                                    flag = 1
-                                                    break
-                                            if flag == 1:
-                                                break
-            
-
-                            alt_uom_df = pd.read_csv(str(BASE_DIR) + '/static/AGT alternative UOM.csv', error_bad_lines=False, dtype="unicode")
-                            
-                            if alt_uom_df[alt_uom_df['Material ID'] == str(material_id)].shape[0] > 0: #okay just one minute okay          
-                                al_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['AUn'].tolist()[0]
-                                b_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['BUn'].tolist()[0]
-                                counter = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Counter'].tolist()[0]
-                                denom = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Denom.'].tolist()[0]
-                                fraction = (int(counter) / int(denom))
-                        
-                                
-                                uom_group_list = ['PH', 'PK', 'PAC']  # holds uoms that represents group
-
-                                if app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] != 1 and  (al_un in uom_group_list  and row['UOM'] in uom_group_list):                        
-                                        if material_id == '11045408':
-                                            print('222222222222222222222222222222222222222222222222222222222222222222222222')
-                                        app_rfp_df.loc[index, '2021 rates'] = app_rfp_df.loc[index, '2021 rates'] / fraction
-                                        app_rfp_df.loc[index, '2020 rates'] = app_rfp_df.loc[index, '2020 rates'] / fraction
-                                        app_rfp_df.loc[index, 'UOM'] = b_un
-
-
-                        return app_rfp_df
-
-                            
-                    app_rfp_df = normalize(app_rfp_df)
+                    app_rfp_df = normalize_pricebook(app_rfp_df)
 
                     # ADD PB Transactions to Basket 2
                     DMP_RFP.app_rfp_df_after_search = app_rfp_df.copy()
@@ -507,8 +372,8 @@ class DMP_RFP(DMP):
             add_get_params(response)
             return response 
 
-
     #*****************************RFP Visualization SECTION************************************************************
+
 
     @csrf_exempt
     def get_filter_data_rfp(request):
@@ -587,7 +452,7 @@ class DMP_RFP(DMP):
             try:    
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':
+                if user_type == 'supplier' or user_type == 'customer':
                     # json_records_app=DMP_RFP.unique_increase_df.columns.to_json(orient='records')
                     # increase_json=json.loads(json_records_app)    
                     # pricebook_table=pd.read_csv(str(BASE_DIR) + '/static/unique_increase_df.csv', error_bad_lines=False, dtype="unicode")
@@ -646,7 +511,7 @@ class DMP_RFP(DMP):
             try:    
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':
+                if user_type == 'supplier':
                     dict = json.loads(request.POST.get('key1'))
                     pricebook_table=DMP_RFP.dicount_df
                     dict_df= pd.DataFrame(dict.items(), columns=['index', 'Input Value'])
@@ -694,7 +559,7 @@ class DMP_RFP(DMP):
                 if user_type == 'customer':
                     input_min_date = request.POST.get('input_min_date')
                     input_max_date = request.POST.get('input_max_date')
-                    input_categories =request.POST.getlist('categories_rfp[]')
+                    input_categories = request.POST.getlist('categories_rfp[]')
                     today = pd.to_datetime("today").normalize()
                     current_date = today.strftime('%Y-%m-%d')
 
@@ -708,8 +573,15 @@ class DMP_RFP(DMP):
                     app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
                     app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
                     new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
+                    print("-------------------------------------test new_a2a test-1: ", new_a2a.shape)
 
                     new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
+                    print("-------------------------------------test app_to_app_rfp: ",app_to_app_rfp.shape)
+                    print("-------------------------------------test app_rfp_df: ",app_rfp_df.shape)
+                    print("-------------------------------------test new_a2a test-2: ", new_a2a.shape)
+                    print("-------------------------------------test input_categories: ", input_categories)
+                    print("-------------------------------------test input_min_date: ", input_min_date)
+                    print("-------------------------------------test input_max_date: ", input_max_date)
 
                     if new_a2a.shape[0] > 0:
                         list_of_idxes = get_most_spent_material_indexes(new_a2a)
@@ -763,11 +635,9 @@ class DMP_RFP(DMP):
                                     })
                             add_get_params(response)
                             return response
-                        
                     else:
                         fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
-                    
                         #! return finded rows data in table 
                         response = JsonResponse({            
                             'plot_div_1_rfp': div_1,
@@ -1056,6 +926,7 @@ class DMP_RFP(DMP):
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
                     
+            
                     input_categories = request.POST.getlist('categories_rfp[]')
                     app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
                     app_to_app_rfp = app_to_app_rfp[app_to_app_rfp['Product Category Description'].isin(input_categories)]
@@ -1174,6 +1045,7 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
+                
                     input_min_date= request.POST.get('input_min_date')
                     input_max_date= request.POST.get('input_max_date')
                     input_categories=request.POST.getlist('categories_rfp[]')
@@ -1245,7 +1117,7 @@ class DMP_RFP(DMP):
                         sum_4 = type_1_df['Pricebook Last Year Spend'].sum() 
                         
                         total_spends = [sum_4, sum_5, sum_3, sum_2, sum_1]
-                        DMP_RFP.total_spends_in_5=total_spends
+                        DMP_RFP.total_spends_in_5 = total_spends
 
                         y_ = ['Pricebook', 'Lowest', 'Last', 'Average', 'Proposed']
                         y_2 = [' ', '  ' , '   ', '    ', '     ']
@@ -1338,7 +1210,6 @@ class DMP_RFP(DMP):
                             })
                     add_get_params(response)
                     return response
-               
                 else:
                     response = JsonResponse({'Answer': "You have have not access to this query.", })
                     response.status_code=501
@@ -1367,16 +1238,16 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
-        
                     input_min_date= request.POST.get('input_min_date')
                     input_max_date= request.POST.get('input_max_date')
                     input_categories=request.POST.getlist('categories_rfp[]')
                     vendor_name = DMP_RFP.rfp_vendor_name
                     vendor_name = vendor_name.lower()
                     
-                    df = DMP_RFP.df_full.copy()
+                    df=DMP_RFP.df_full.copy()
                     df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
                     df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
+                    df = df[df['Product Category Description'].isin(input_categories)]
                     
                     if df.shape[0] > 0:
                         flag = 1
@@ -1403,6 +1274,7 @@ class DMP_RFP(DMP):
                         
                             a = df[df['Vendor Name'].str.lower() == vendor_name.lower()]
                             a = a[(a['PO Item Creation Date'] >= input_min_date) & (a['PO Item Creation Date'] <= input_max_date)]
+                            
                             total_spend = a['PO Item Value (GC)'].sum() / 1000000
                             DMP_RFP.total_spend = str(round(total_spend, 2)) + 'M'
                             
@@ -1424,7 +1296,6 @@ class DMP_RFP(DMP):
                             
                             e = pd.merge(b, a[['Product Category', 'Product Category Description']],  
                                         how='left', on='Product Category').drop_duplicates(['Product Category', 'Year'])
-                            
                             c_years = c['Year'].unique().tolist()
                             e_years = e['Year'].unique().tolist()
                             ls = list(set(c_years) - set(e_years))
@@ -1438,8 +1309,6 @@ class DMP_RFP(DMP):
 
                             e.reset_index(drop=True, inplace=True)
                             e.sort_values('Year', inplace=True)
-                            
-                            
                             fig = px.bar(e, x='Year', y='PO Item Value (GC)', color='Product Category Description', 
                                 barmode='stack', text='PO Item Value (GC) Text', color_discrete_sequence=px.colors.qualitative.Set3,)
                             fig.update_traces(marker_line_width=0)
@@ -1505,7 +1374,6 @@ class DMP_RFP(DMP):
             add_get_params(response)
             return response
 
-
     @csrf_exempt
     def recommendation(request):
         # Build the POST parameters
@@ -1514,26 +1382,56 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
+                    print("Teteteteteteteteeteteetetetetettettetettetteetetetteeteteteteteetetee")
+                
+                    input_min_date = request.POST.get('input_min_date')
+                    input_max_date = request.POST.get('input_max_date')
+                    input_categories=request.POST.getlist('categories_rfp[]')
+                    
+                    vendor_name = DMP_RFP.rfp_vendor_name
+                    vendor_name = vendor_name.lower()
+                    
                     total_spends = DMP_RFP.total_spends_in_4
                     total_spends_2 = DMP_RFP.total_spends_in_5
-                    y_ = ['Pricebook', 'Last Purchase', 'Average', 'Proposed']
-                    
-                    # zip_iterator = zip(y_, total_spends)
-                    # rec_dict = dict(zip_iterator)
-                    # rec_dict = {'Pricebook': 904119.06, 'Last Purchase': 888191.44, 'Average': 893475.4722352589, 'Proposed': 700000.44}
+                    y_ = ['Pricebook', 'Lowest', 'Last Purchase', 'Average', 'Proposed']
                     rec_dict = dict(zip(y_, total_spends))
 
-                    minval = min(rec_dict.values())
-                    res = [k for k, v in rec_dict.items() if v==minval]
+                    print('\n\n\n')
+                    print('rec_dict: ', rec_dict)
 
-                    df=DMP_RFP.df_full.copy()
-                    df['PO Item Creation Date'] = pd.to_datetime(df['PO Item Creation Date'])
-                    df['PO Item Value (GC)'] = df['PO Item Value (GC)'].astype('float')
-                    df = df[df['Vendor Name'] == DMP_RFP.rfp_vendor_name]
+                    df = DMP_RFP.df_full.copy()
+                    # df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
+                    # df = df[df['Product Category Description'].isin(input_categories)]
+                
+                    flag = 1
+                    vendor_names_all_dataframe = df['Vendor Name'].str.lower().unique().tolist()
+                    if vendor_name not in vendor_names_all_dataframe:  
+                        fuzzy_score = []
+                        for vendor in vendor_names_all_dataframe:
+                            lst_vendor = list(vendor.lower().replace(' ',''))
+                            lst_a = list(vendor_name.replace(' ',''))
+                            s1 = fuzz.partial_ratio(lst_vendor, lst_a)
+                            fuzzy_score.append(s1)
+
+                        max_score = max(fuzzy_score)
+                        max_score_index = fuzzy_score.index(max_score)
+                        result_vendor = vendor_names_all_dataframe[max_score_index]
+                        if max_score >= 0.4:
+                            vendor_name = result_vendor
+                            flag = 0
+                    else:
+                        vendor_name = vendor_name.lower()
+                        flag = 0
+
+
+                    df = df[df['Vendor Name'].str.lower() == vendor_name.lower()]
+                    print('df shape: ', df.shape)
+                    
                     now = dt.datetime.now()
                     last_year = now.year-1
                     last_year_df = df[df['PO Item Creation Date'].dt.year == last_year]
                     last_year_total_spend = last_year_df['PO Item Value (GC)'].sum()
+                    
                     pricebook_spend = rec_dict.get('Pricebook')
                     rfp_valuation = rec_dict.get('Proposed')
                     last_purchase_valuation = rec_dict.get('Last Purchase')
@@ -1541,241 +1439,74 @@ class DMP_RFP(DMP):
 
 
 
-                    #!  ------------------------- START  Evaluation for pricebook items -------------------------
-                    app_to_app_rfp=DMP_RFP.app_to_app_rfp_after_search.copy()
-                    app_rfp_df=DMP_RFP.app_rfp_df_after_search.copy()
+                #!  ------------------------- START  Evaluation for pricebook items -------------------------
+                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
+                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
                     
                     new_a2a = pd.merge(app_to_app_rfp, app_rfp_df[['BP Material / \nService Master No.', '2021 rates', '2020 rates']], 
                         how='left', left_on='Material/Service No.', right_on='BP Material / \nService Master No.')
                     
-                    new_a2a['Average Price'] = new_a2a['Unit Price'].groupby(new_a2a['Material/Service No.']).transform('mean')
-                    new_a2a['delta'] = 0.0
-                    new_a2a['Increase percentage'] = 0.0
-                    new_a2a['PO Item Creation Date'] = pd.DatetimeIndex(new_a2a['PO Item Creation Date'])
-                    new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'delta'] = new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['2021 rates'] - new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']
-                    new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'Increase percentage'] = (new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['delta'] / new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Unit Price']) * 100
-                    new_a2a['Increase percentage'] = round(new_a2a['Increase percentage'])
+                    unique_increase_df = find_price_raisen_materials_pb(new_a2a)
+                #!  ------------------------- END  Evaluation for pricebook items -------------------------
 
-
-                    weight_df = pd.DataFrame(new_a2a.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
-                    weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
-                    weight_df.reset_index(inplace=True)
-
-
-                    new_a2a = pd.merge(new_a2a, weight_df,  how='left', on='Material/Service No.')
-                    new_a2a['Item Weight'] = new_a2a['Item Total Spend'] / (new_a2a['PO Item Value (GC)'].sum())
-                    
-                
-                    increase_df = new_a2a[new_a2a['delta'] > 0]
-                    unique_increase_df = increase_df.drop_duplicates(subset = ['Material/Service No.'], keep = 'first') 
-                    unique_increase_df['Proposed Price'] =  unique_increase_df['2021 rates'].astype('str')
-
-                    #!  ------------------------- END  Evaluation for pricebook items -------------------------
-
-
-
-
-
-                    #!  ------------------------- START  Evaluation for non-pricebook items -------------------------
-                    df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
-
-                    df = df[df['Region'] == DMP_RFP.rfp_region_name]
-                    df = df[df['PO Item Deletion Flag'] != 'X']
-                    df = df[df['PO Status Name'] != 'Deleted']
-                    df.loc[df['Vendor Name'] == 'R&M Electrical Group MMC',   'Vendor Name'] = 'R&M Electrical Group'
-                    df.loc[df['Vendor Name'] == 'R&M Electrical Group Ltd',   'Vendor Name'] = 'R&M Electrical Group'
-                    df.loc[df['Vendor Name'] == 'R M Electrical Group Limited',   'Vendor Name'] = 'R&M Electrical Group'
-                    df['PO Item Value (GC)'] = df['PO Item Value (GC)'].astype('float')
-                    df['PO Item Quantity'] = df['PO Item Quantity'].astype('float')
-                    df['Unit Price'] = df['PO Item Value (GC)'] / df['PO Item Quantity'] 
-                    df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
-                    df = df[df['Unit Price'] != 0]
-                    df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
-                    df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
-
-
-                    temp_df = df[(df['Vendor Name'].str.lower() == DMP_RFP.rfp_vendor_name.lower())].copy()
+                #!  ------------------------- START  Evaluation for non-pricebook items -------------------------
                     a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
-
-                    new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
-                    # # Step - 1  (material id: yes   |   part number: yes)
-                    df_1 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
-                    new_df.loc[df_1.index.tolist(), 'Material/Service No.'] = new_df.loc[df_1.index.tolist(), 'Material/Service No.'] + ' (' + new_df.loc[df_1.index.tolist(), 'Manufacturer Part No.'] + ')'
-
-
-                    # # Step - 2  (material id: no   |   part number: yes)
-                    df_2 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
-                    df_2['labels'] = -1
-                    groups = df_2.groupby("Manufacturer Part No.")
-                    max_label = 0
-                    i=0
-                    for name, group in groups:
-                        corpus = group['PO Item Description'].tolist()
-                        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1,2))
-                        X2 = vectorizer2.fit_transform(corpus)
-
-                        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
-                        dbscan = DBSCAN(eps=3.8, min_samples=1)
-                        model = dbscan.fit(counts.values) 
-                        max_label = len(group['labels'].unique().tolist()) + max_label
-                        
-                        group['labels'] = max_label + model.labels_
-                        df_2.loc[group.index.tolist(), 'labels'] = group['labels']
-                        i += 1
-
-                    df_2['labels'] = df_2['labels'].astype('str')
-                    new_df.loc[df_2.index.tolist(), 'Material/Service No.'] = new_df.loc[df_2.index.tolist()]['Manufacturer Part No.'] + ' (' + df_2['labels'] + ') B' 
-
+  
+                    new_df = df.loc[~df.index.isin(a2a.base_index.tolist())]
+                    new_df = find_a2a_non_pricebook(new_df)
+                    DMP_RFP.non_pricebook_df = new_df.copy()
                     
-                    # # Step - 3  (material id: yes   |   part number: no)
-                    df_3 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] == '#')]
-                    df_3['labels'] = -1
-                    groups = df_3.groupby("Material/Service No.")
-                    max_label = 0
-                    i=0
-                    for name, group in groups:
-                        corpus = group['PO Item Description'].tolist()
-                        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1, 2))
-                        X2 = vectorizer2.fit_transform(corpus)
-                        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
-                        
-                        model = dbscan.fit(counts.values)
-                        max_label = len(group['labels'].unique().tolist()) + max_label
-                        group['labels'] = max_label + model.labels_
-                        df_3.loc[group.index.tolist(), 'labels'] = group['labels']
-                        i += 1
+                    DMP_RFP.min_date_non_pricebook = min(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
+                    DMP_RFP.max_date_non_pricebook = max(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
 
-                        
-                    df_3['labels'] = df_3['labels'].astype('str')
-                    new_df.loc[df_3.index.tolist(), 'Material/Service No.'] = new_df.loc[df_3.index.tolist()]['Material/Service No.'] + ' (' + df_3['labels'] + ') C' 
-
-
-                    # Step - 4  (material id: no   |   part number: no)
-                    def check_description_2(x, desc):
-                        return float(len(set(x).intersection(desc)) / len(set(x).union(desc)))
-
-                    df_4 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] == '#')]
+                    increase_df_23 = find_price_raisen_materials_non_pb(new_df)
+                #!  ------------------------- END  Evaluation for nonpricebook items -------------------------
                     
-
-                    list_of_descriptions = df_4['PO Item Description'].value_counts().index.tolist()
-                    df_4['desc_words_short'] = df_4['PO Item Description'].apply(lambda x: x.replace(':', ' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
-                    i = 1
-                    for description in list_of_descriptions:
-                        
-                        description = set(description.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
-                        df_4['score'] = df_4['desc_words_short'].apply(lambda x: check_description_2(x, description))
-                        out_df = df_4[df_4['score'] > 0.6]
-                        df_4 = df_4[df_4['score'] <= 0.6]
-                        new_df.loc[out_df.index.tolist(), 'Material/Service No.'] = 'D (' + str(i) + ')' 
-                        i += 1
-                
-                
-                    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
-                    min_date_non_pricebook = min(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
-                    max_date_non_pricebook = max(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
-                    print("mmmmmmmmmmmmmmmmmmm",max_date_non_pricebook)
-                    DMP_RFP.min_date_non_pricebook = min_date_non_pricebook
-                    DMP_RFP.max_date_non_pricebook = max_date_non_pricebook
-                            
-                    today = pd.to_datetime("today").normalize()
-                    one_year_before = today - datetime.timedelta(days=3*365)
-                    starting_date = one_year_before.replace(month=1, day=1)   # 2020-01-01
-                    one_year_before = today - datetime.timedelta(days=1*365)  # 2020-12-31
-                    ending_date = one_year_before.replace(month=12, day=31)
-                    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
-                    new_df = new_df[(new_df['PO Item Creation Date'] >= starting_date) & (new_df['PO Item Creation Date'] <= ending_date)]
-                    
-                    df_23 = new_df.groupby(['Material/Service No.']).filter(lambda x: len(x) > 1)
-                    df_23['PO Item Value (GC)'] = df_23['PO Item Value (GC)'].astype('float')
-                    # df_23['Item Total Spend'] = df_23['Item Total Spend'].astype('float')
-                    weight_df = pd.DataFrame(df_23.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
-                    weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
-                    weight_df.reset_index(inplace=True)
-                    df_23 = pd.merge(df_23, weight_df,  how='left', on='Material/Service No.')
-                    df_23['Item Weight'] = df_23['Item Total Spend'] / (df_23['PO Item Value (GC)'].sum())
-
-                    df_23['Average Price'] = df_23['Unit Price'].groupby(df_23['Material/Service No.']).transform('mean')
-                    df_23['Last Price'] = df_23.loc[df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Unit Price']
-
-                    df_23['Average Price'] = round(df_23['Average Price'], 2)
-                    df_23['Last Price'] = round(df_23['Last Price'], 2)
-                    increase_df_23 = df_23[df_23['Average Price'] < df_23['Last Price']]
-                    increase_df_23['delta'] = 0.0
-                    increase_df_23['percentage'] = 0.0
-
-                    increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'delta'] = increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Last Price'] - increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']
-                    increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'percentage'] = (increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['delta'] / increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']) * 100
-                    increase_df_23['Increase percentage'] = round(increase_df_23['percentage'])
-                    increase_df_23['From Pricebook'] = 'NO'
-                    #!  ------------------------- END  Evaluation for nonpricebook items -------------------------
-
-
+                #!  ------------------------- START  Combining price raisen items from priecbook and non-pricebook  -------------------------
+                    print('\n\n\n')
                     # unique_increase_df['Updated Price'] = (unique_increase_df['Unit Price']  + unique_increase_df['2021 rates'])/2
                     # unique_increase_df['Discount'] = unique_increase_df['2021 rates'] - unique_increase_df['Updated Price']
 
                     # one_year_df_4 = pd.merge(one_year_df_4, unique_increase_df[['Material/Service No.', 'Discount']],  how='left', on='Material/Service No.')
                     # one_year_df_4['Discount Spend'] = one_year_df_4['Discount'] * one_year_df_4['PO Item Quantity']
-
-                    unique_increase_df = unique_increase_df.sort_values(by='Item Weight', ascending = False)                 
-                    unique_increase_df['From Pricebook'] = 'YES'   
-                    unique_increase_df = unique_increase_df[['Material/Service No.', 'PO Item Description', 'Manufacturer Name', 'Manufacturer Part No.', 'Increase percentage', 'From Pricebook']]
+                
+                    pricebook_increase_df = unique_increase_df.sort_values(by='Item Weight', ascending = False)                 
+                    pricebook_increase_df['From Pricebook'] = 'YES'   
+                    pricebook_increase_df = pricebook_increase_df[['Material/Service No.', 'PO Item Description', 'Manufacturer Name', 'Manufacturer Part No.', 'Increase percentage', 'Average Price', '2021 rates', 'From Pricebook']]
 
 
                     increase_df_23['Proposed Price'] = increase_df_23['Last Price']   
-                    increase_df_23 = increase_df_23.sort_values(by='Item Weight', ascending = False)                    
-                    increase_df_23 = increase_df_23[['Material/Service No.', 'PO Item Description', 'Manufacturer Name', 'Manufacturer Part No.', 'Increase percentage', 'From Pricebook']]
+                    non_pricebook_increase_df = increase_df_23.sort_values(by='Item Weight', ascending = False)                    
+                    non_pricebook_increase_df = non_pricebook_increase_df[['Material/Service No.', 'PO Item Description', 'Manufacturer Name', 'Manufacturer Part No.', 'Increase percentage', 'Average Price', '2021 rates', 'From Pricebook']]
 
 
-                    unique_increase_df = unique_increase_df.append(increase_df_23)
-                    
-                    unique_increase_df.to_csv(str(BASE_DIR) + '/static/unique_increase_df.csv')
-                    increase_df_23.to_csv(str(BASE_DIR) + '/static/increase_df_23_new.csv')            
+                    all_increase_df = pricebook_increase_df.append(non_pricebook_increase_df)
+                    DMP_RFP.unique_increase_df = all_increase_df
+                #!  ------------------------- END  Combining price raisen items from priecbook and non-pricebook  -------------------------
 
 
-                    DMP_RFP.unique_increase_df = unique_increase_df
 
+                #!  ------------------------------------------------ START  Recommendation  ------------------------------------------------
 
-                    #! If RFP valuation is lower than all positions (last purchase, average, current price book) and if RFP items is covering more than 70% of last year total spend
-                    #  (price book valuation vs last year total spend) then proceed with acceptance of the prices and show below message: Valuation of the offer is lower than
-                    #  previous purchase, hence recommended to accept. Savings for the next year demand, based on last year demand, is $XXX (last purchase price proposed difference
-                    #  from valuation table).  
-                    rec_case_1=""
-                    # last_year_total_spend = 10
+                    DMP_RFP.cond_1 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend > last_year_total_spend * 0.7
+                    DMP_RFP.cond_2 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend < last_year_total_spend * 0.7
+                    DMP_RFP.cond_3 = rfp_valuation < last_purchase_valuation and rfp_valuation > average_prices_valuation
+                    DMP_RFP.cond_4 = rfp_valuation > last_purchase_valuation and rfp_valuation > average_prices_valuation and rfp_valuation > pricebook_spend
+                    DMP_RFP.cond_5 = rfp_valuation < average_prices_valuation and rfp_valuation > last_purchase_valuation
+                    DMP_RFP.cond_6 = rfp_valuation < pricebook_spend and rfp_valuation > last_purchase_valuation
 
-                    cond_1 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend > last_year_total_spend * 0.7
-                    cond_2 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend < last_year_total_spend * 0.7
-                    cond_3 = rfp_valuation < last_purchase_valuation and rfp_valuation > average_prices_valuation
-                    cond_4 = rfp_valuation > last_purchase_valuation and rfp_valuation > average_prices_valuation and rfp_valuation > pricebook_spend
-                    cond_5 = rfp_valuation < average_prices_valuation and rfp_valuation > last_purchase_valuation
-                    cond_6 = rfp_valuation < pricebook_spend and rfp_valuation > last_purchase_valuation
-                    DMP_RFP.cond_1=cond_1
-                    DMP_RFP.cond_2=cond_2
-                    DMP_RFP.cond_3=cond_3
-                    DMP_RFP.cond_4=cond_4
-                    DMP_RFP.cond_5=cond_5
-                    DMP_RFP.cond_6=cond_6
-
-                    if cond_1:
+                    if DMP_RFP.cond_1:
                         savings = rec_dict.get('Last Purchase') - rec_dict.get('Proposed')
-                        print('RFP Valuation is less than all positions and is covering more than 70% of last year total spend')
                         message = "Valuation of the offer is lower than previous purchase, hence recommended to accept. Savings for the next year demand, based on last year demand, is $" + str(savings) + "."
                         rec_case_1=message
-                        print('Recommendatiommmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmn: ', message)
                 
-                    elif cond_2 or cond_3 or cond_4 or cond_5 or cond_6:
-                        print('RFP Valuation is less than all positions and is covering less than 70% of last year total spend')
-                        # unique_increase_df.to_csv('unique_increase_df.csv')    # Have to display in UI 
+                    elif DMP_RFP.cond_2 or DMP_RFP.cond_3 or DMP_RFP.cond_4 or DMP_RFP.cond_5 or DMP_RFP.cond_6:
                         message = "Dear supplier " + DMP_RFP.rfp_vendor_name + " our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
-                        print('Recommendationnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn: ', message)
-                        html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name + ' Ltd</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_user.html" target="_blank">Link for materials that has risen in price</a></h4>'
                         rec_case_1=message
+
                     else:
-                        rec_case_1="There is no recommendation in this case. "
-
-
-
-                    print('\n*************************************     Recommendation End      ************************************\n')
-                
+                        rec_case_1="No recommendation for the pricebook."
+                #!  ------------------------------------------------ END  Recommendation  ------------------------------------------------
 
                     #! return finded rows data in table 
                     response = JsonResponse({            
@@ -1812,23 +1543,14 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
-                    cond_1=DMP_RFP.cond_1
-                    cond_2=DMP_RFP.cond_2
-                    cond_3=DMP_RFP.cond_3
-                    cond_4=DMP_RFP.cond_4
-                    cond_5=DMP_RFP.cond_5
-                    cond_6=DMP_RFP.cond_6
-                
-                    if cond_2 or cond_3 or cond_4 or cond_5 or cond_6:
-                        print('RFP Valuation is less than all positions and is covering less than 70% of last year total spend')
-                        # unique_increase_df.to_csv('unique_increase_df.csv')    # Have to display in UI 
+                    if DMP_RFP.cond_2 or DMP_RFP.cond_3 or DMP_RFP.cond_4 or DMP_RFP.cond_5 or DMP_RFP.cond_6:
                         message = "Dear supplier " + DMP_RFP.rfp_vendor_name + ", our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
-                        print('Recommendation: ', message)
                         html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
                         rec_case_1=message
                         
                         new_message  = strip_tags(html_message)
                         try:
+                            print("i can try sending message to dmpbestrack: ", new_message)
                             full_name = 'DMP BESTRACK'
                             email = 'dmp.bestrack@gmail.com'
                             message = 'I am here ' + ' ' + new_message
@@ -1836,16 +1558,19 @@ class DMP_RFP(DMP):
 
                             #send_mail
                             send_mail(
-                        "From: "+ full_name, #subject
-                        "User Email: "+email+"\n Request for discount: "+message,    #message
-                        email, #from email
-                        ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.prodigitrack@gmail.com"],     html_message=html_message)
+                                    "From: "+ full_name, #subject
+                                    "User Email: "+email+"\n Request for discount: "+message,    #message
+                                    email, #from email
+                                    ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.prodigitrack@gmail.com"],     
+                                    html_message=html_message
+)
                         except Exception as e:
                             print("mail sending error: ", e)
+                    
+                    print("Recommanation successfully finished!")        
                     response = JsonResponse({            
                         'rec_case_1':"rec_case_1",
                         })
-                                
                     add_get_params(response)
                     return response
                 else:

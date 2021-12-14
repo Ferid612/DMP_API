@@ -1,3 +1,4 @@
+# Non-Pricebook Data Visualization
 from .views_visual_rfp import *
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,8 +14,9 @@ from fuzzywuzzy import fuzz
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import DBSCAN
-
+from multiprocessing import Pool
 import plotly.graph_objects as go
+from .helpers import get_last_3_years_data
 CRED = '\033[91m'
 CEND = '\033[0m'
 
@@ -25,6 +27,8 @@ warnings.filterwarnings('ignore')
 
 class DMP_RFP_2(DMP_RFP):
     
+
+
     @csrf_exempt
     def non_pricebook_search(request): 
                 # Build the POST parameters
@@ -37,168 +41,28 @@ class DMP_RFP_2(DMP_RFP):
                     
 
                     DMP_RFP_2.plot_bg='rgba(171, 248, 190, 0.8)'
-                    df = pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv", parse_dates=['PO Item Creation Date'], dtype="unicode")
-                    rfp_region_name = DMP_RFP.rfp_region_name
-                    rfp_vendor_name = DMP_RFP.rfp_vendor_name
-                    rfp_name = DMP_RFP.rfp_name
-                    rfp_currency_name = DMP_RFP.rfp_currency_name 
-
-                    DMP_RFP_2.rfp_name = rfp_name
-                    DMP_RFP_2.rfp_currency_name =rfp_currency_name 
-                    DMP_RFP_2.rfp_vendor_name = rfp_vendor_name
-                    DMP_RFP_2.rfp_region_name=rfp_region_name
-                    
-                    df = df[df['Region'] == rfp_region_name]
-
-                    # # New conditions
-                    # df = pd.read_csv(r'C:\Users\OMEN 30L AD\Desktop\DMP\Data\full_data.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
-                    # # New conditions
-                    # df = df[df['PO Item Deletion Flag'] != 'X']
-                    # df = df[df['PO Status Name'] != 'Deleted']
-                    # df.loc[df['Vendor Name'] == 'R&M Electrical Group MMC',   'Vendor Name'] = 'R&M Electrical Group'
-                    # df.loc[df['Vendor Name'] == 'R&M Electrical Group Ltd',   'Vendor Name'] = 'R&M Electrical Group'
-                    # df.loc[df['Vendor Name'] == 'R M Electrical Group Limited',   'Vendor Name'] = 'R&M Electrical Group'
-                    # df['PO Item Value (GC)'] = df['PO Item Value (GC)'].astype('float')
-                    # df['PO Item Quantity'] = df['PO Item Quantity'].astype('float')
-                    # df['Unit Price'] = df['PO Item Value (GC)'] / df['PO Item Quantity'] 
-                    # df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
-                    # df = df[df['Unit Price'] != 0]
-                    # df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
-                    # df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
-
-
-                    df = df[df['PO Item Deletion Flag'] != 'X']
-                    df = df[df['PO Status Name'] != 'Deleted']
-                    df.loc[df['Vendor Name'] == 'R&M Electrical Group MMC',   'Vendor Name'] = 'R&M Electrical Group'
-                    df.loc[df['Vendor Name'] == 'R&M Electrical Group Ltd',   'Vendor Name'] = 'R&M Electrical Group'
-                    df.loc[df['Vendor Name'] == 'R M Electrical Group Limited',   'Vendor Name'] = 'R&M Electrical Group'
-                    df['PO Item Value (GC)'] = df['PO Item Value (GC)'].astype('float')
-                    df['PO Item Quantity'] = df['PO Item Quantity'].astype('float')
-                    df['Unit Price'] = df['PO Item Value (GC)'] / df['PO Item Quantity'] 
-                    df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
-                    df = df[df['Unit Price'] != 0]
-                    df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
-                    df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
-
-                    temp_df = df[df['Vendor Name'] == rfp_vendor_name].copy()
-                    a2a = pd.read_csv(str(BASE_DIR) + "/static/A2A_28_08_2021.csv")
-                    print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 0', temp_df.shape)
-                    print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 1', a2a.shape)
-                    new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
-                    print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 2', new_df.shape)
-                    
-                    df_1 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
-                    new_df.loc[df_1.index.tolist(), 'Material/Service No.'] = new_df.loc[df_1.index.tolist(), 'Material/Service No.'] + ' (' + new_df.loc[df_1.index.tolist(), 'Manufacturer Part No.'] + ')'
-
-
-                    # new_df = temp_df.loc[~temp_df.index.isin(a2a.base_index.tolist())]
-
-                    df_2 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
-                    df_2['labels'] = -1
-                    groups = df_2.groupby("Manufacturer Part No.")
-                    max_label = 0
-                    i=0
-                    for name, group in groups:
-                        corpus = group['PO Item Description'].tolist()
-                        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1,2))
-                        X2 = vectorizer2.fit_transform(corpus)
-
-                        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
-
-                        dbscan = DBSCAN(eps=3.8, min_samples=1)
-                        model = dbscan.fit(counts.values)
-                        max_label = len(group['labels'].unique().tolist()) + max_label
-                        
-                        group['labels'] = max_label + model.labels_
-                        df_2.loc[group.index.tolist(), 'labels'] = group['labels']
-                        i += 1
-
-                    df_2['labels'] = df_2['labels'].astype('str')
-                    new_df.loc[df_2.index.tolist(), 'Material/Service No.'] = new_df.loc[df_2.index.tolist()]['Manufacturer Part No.'] + ' (' + df_2['labels'] + ') B' 
-
-
-                    df_3 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] == '#')]
-
-                    df_3['labels'] = -1
-                    groups = df_3.groupby("Material/Service No.")
-                    max_label = 0
-                    i=0
-                
-                    for name, group in groups:
-                        corpus = group['PO Item Description'].tolist()
-                        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1, 2))
-                        X2 = vectorizer2.fit_transform(corpus)
-                        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
-                        
-                        model = dbscan.fit(counts.values)
-                        max_label = len(group['labels'].unique().tolist()) + max_label
-                        
-                        group['labels'] = max_label + model.labels_
-                        df_3.loc[group.index.tolist(), 'labels'] = group['labels']
-                        i += 1
-
-
-                    df_3['labels'] = df_3['labels'].astype('str')
-                    new_df.loc[df_3.index.tolist(), 'Material/Service No.'] = new_df.loc[df_3.index.tolist()]['Material/Service No.'] + ' (' + df_3['labels'] + ') C' 
-
-
-                    def check_description_2(x, desc):
-                        return float(len(set(x).intersection(desc)) / len(set(x).union(desc)))
-
-
-                    df_4 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] == '#')]
-                    list_of_descriptions = df_4['PO Item Description'].value_counts().index.tolist()
-                    df_4['desc_words_short'] = df_4['PO Item Description'].apply(lambda x: x.replace(':', ' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
-                    i = 1
-
-                    for description in list_of_descriptions:            
-                        description = set(description.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
-                        df_4['score'] = df_4['desc_words_short'].apply(lambda x: check_description_2(x, description))
-                        out_df = df_4[df_4['score'] > 0.75]
-                        df_4 = df_4[df_4['score'] <= 0.77]
-                        new_df.loc[out_df.index.tolist(), 'Material/Service No.'] = 'D (' + str(i) + ')' 
-                        i += 1
-
+                    new_df = DMP_RFP.non_pricebook_df
                     new_df.reset_index(drop=True, inplace=True)
-
+                    
+                    DMP_RFP_2.non_pricebook_items_count = len(new_df['Material/Service No.'].unique().tolist())        
+                    
+                    new_df = get_last_3_years_data(new_df)
+                    new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
 
                     #!  ----------------------------------------- Normalization  Start -----------------------------------------
-                    # # UOM Code ~ 200 lines
-                    # types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 0.00459, 'LB': 2.204},
-                    #                 'Area':    {'M2': 1, 'JO': 0.617},
-                    #                 'Length':  {'M': 1, 'FT': 3.28, 'LN': 1, 'LS': 1, 'IN': 39.37, 'KM': 0.001, 'ROL': 1, 'FOT': 3.28},
-                    #                 'Volume':  {'L': 1, 'DR': 0.0048, 'GAL': 0.264, 'M3': 0.001, 'PL': 1, 'ML': 1000, 'BTL': 1.333} }
-
-                    # for index, row in new_df.iterrows():
-                    #     for key in types_of_UoM:
-                    #         a = types_of_UoM[key]
-                    #         if  row['PO Item Quantity Unit'] in a.keys():
-                    #             new_df.iat[index, new_df.columns.get_loc('Unit Price')] *= a[row['PO Item Quantity Unit']]
-                    # new_df.iat[index, new_df.columns.get_loc('PO Item Quantity Unit')] = next(iter(a))
-                    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
-                    new_df = new_df[new_df['PO Item Creation Date'] >= '2018-01-01']
-                    new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a.csv")
+                    # Select transactions that occur after year 2018
                     
-                    from multiprocessing import Pool
                     material_id_list = new_df['Material/Service No.'].value_counts().index.tolist()
+                    
                     identifier = [2 for i in range(len(material_id_list))]
                     with Pool() as pool:
                         a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
-                    a2a_conv.to_csv(str(BASE_DIR) + "/static/new_df_a2a_conv_new.csv")
-                    #!  ----------------------------------------- Normalization  End -----------------------------------------
+
+                    a2a_conv.to_csv(str(BASE_DIR) + '/static/new_df_a2a_conv_new.csv')
                     new_df  = pd.read_csv(str(BASE_DIR) + '/static/new_df_a2a_conv_new.csv')
 
-                    non_pricebook_items_count = len(new_df['Material/Service No.'].unique().tolist())
-                    DMP_RFP_2.non_pricebook_items_count = non_pricebook_items_count
-                    
-                    today = pd.to_datetime("today").normalize()
-                    one_year_before = today - datetime.timedelta(days=3*365)
-                    starting_date = one_year_before.replace(month=1, day=1)   # 2018-01-01
-                    one_year_before = today - datetime.timedelta(days=1*365)  # 2020-12-31
-                    ending_date = one_year_before.replace(month=12, day=31)
-                    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
-                    new_df = new_df[(new_df['PO Item Creation Date'] >= starting_date) & (new_df['PO Item Creation Date'] <= ending_date)]
-                
+                    #!  ----------------------------------------- Normalization  End -----------------------------------------
+
                 # BURAYA GELMELIDI
                     if str(input_transaction) == "2":
                         new_df = new_df.groupby(['Material/Service No.']).filter(lambda x: len(x) > 1)
@@ -211,19 +75,14 @@ class DMP_RFP_2(DMP_RFP):
                     # mask = new_df['Long Description'].apply(lambda x: len(x) > 30)
                     # bskt_2 = new_df[~mask]
                     # new_df = new_df[mask]
-                    new_df.to_csv(str(BASE_DIR) + "/static/new_df_a2a_new.csv")
-                    print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ ', new_df.shape)
-                    DMP_RFP_2.new_df=new_df
-                    aa = DMP_RFP_2.new_df.copy()
+                    print('\n\n\n')
+                    print(new_df.info())
+
+                    print('\n\n\n')
                     new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
-                    new_df['PO Item Value (GC)'] = new_df['PO Item Value (GC)'].astype('float')
-                    new_df['PO Item Quantity'] = new_df['PO Item Quantity'].astype('float')
-                    new_df['Unit Price'] = new_df['Unit Price'].astype('float')
-
-
+                    DMP_RFP_2.new_df = new_df
                     df_1 = new_df.groupby(['Material/Service No.']).filter(lambda x: len(x) > 1) 
-
-                    weight_df = pd.DataFrame(new_df.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
+                    weight_df = pd.DataFrame(df_1.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
                     weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
                     weight_df.reset_index(inplace=True)
 
@@ -232,7 +91,6 @@ class DMP_RFP_2(DMP_RFP):
 
                     last_purchases_df = df_1.loc[df_1.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]
                     last_purchases_df['Last Price'] = last_purchases_df['Unit Price'].copy()
-                    last_purchases_df.shape     
 
                     df_1 = df_1[~df_1.index.isin(last_purchases_df.index.tolist())]
                     df_1 = pd.merge(df_1, last_purchases_df[['Material/Service No.', 'Last Price']], how='left', on='Material/Service No.') 
@@ -256,16 +114,15 @@ class DMP_RFP_2(DMP_RFP):
                     DMP_RFP_2.last_purchases_df=last_purchases_df
                     DMP_RFP_2.app_rfp_df = app_rfp_df
                     DMP_RFP_2.new_a2a = new_a2a
-                    DMP_RFP_2.df = temp_df
+                    DMP_RFP_2.df = new_df
                     
 
 
                     #! return finded rows data in table 
                     response = JsonResponse({            
-                        'non_pricebook_items_count': non_pricebook_items_count,
+                        'non_pricebook_items_count': DMP_RFP_2.non_pricebook_items_count,
                         # 'total_item_count': total_item_count,
                         })
-
                     add_get_params(response)
                     return response
                 else:
@@ -288,6 +145,7 @@ class DMP_RFP_2(DMP_RFP):
             add_get_params(response)
             return response
         
+
     @csrf_exempt
     def visual_ajax_1_rfp(request):
         # Build the POST parameters

@@ -243,3 +243,283 @@ LINE 1: ALTER TABLE Customer alter column customer_id INTEGER PRIMAR...
 2021-12-10 14:03:28,276 [ERROR] django.request: HTTP Version Not Supported: /home/check_user_status/
 2021-12-10 17:10:09,926 [ERROR] django.request: HTTP Version Not Supported: /home/check_user_status/
 2021-12-10 17:10:09,957 [ERROR] django.request: Not Implemented: /pricebook/get_all_customer/
+2021-12-10 23:14:29,219 [ERROR] django.request: HTTP Version Not Supported: /home/check_user_status/
+2021-12-10 23:17:20,807 [ERROR] django.request: HTTP Version Not Supported: /home/check_user_status/
+2021-12-10 23:26:02,279 [ERROR] django.request: Internal Server Error: /home/get_filter_data/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 257, in get_filter_data
+    'region':'AGT',
+AttributeError: type object 'DMP' has no attribute 'input_region_name'
+2021-12-10 23:27:41,013 [ERROR] django.request: Internal Server Error: /home/get_filter_data/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 257, in get_filter_data
+    'region':'AGT',
+AttributeError: type object 'DMP' has no attribute 'input_region_name'
+2021-12-10 23:27:57,405 [ERROR] django.request: Internal Server Error: /home/get_filter_data/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 257, in get_filter_data
+    'region':'AGT',
+AttributeError: type object 'DMP' has no attribute 'input_region_name'
+2021-12-10 23:31:44,846 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 482, in visual_ajax_4
+    last_purchase_df = result[result['PO Item Creation Date'] == result['PO Item Creation Date'].max()].iloc[0]
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\pandas\core\indexing.py", line 931, in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\pandas\core\indexing.py", line 1566, in _getitem_axis
+    self._validate_integer(key, axis)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\pandas\core\indexing.py", line 1500, in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+IndexError: single positional indexer is out-of-bounds
+2021-12-10 23:33:11,535 [ERROR] django.request: Not Implemented: /home/visual_ajax_5_7/
+2021-12-10 23:33:23,635 [ERROR] django.request: Not Implemented: /home/visual_ajax_5_7/
+2021-12-10 23:34:07,387 [ERROR] django.request: HTTP Version Not Supported: /home/check_user_status/
+2021-12-11 00:05:06,837 [ERROR] django.request: Not Implemented: /home/check_file_historical/
+2021-12-11 01:42:39,609 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:42:41,120 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:43:17,491 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:43:18,770 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:44:16,805 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:44:16,892 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:45:07,742 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:45:07,756 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:45:14,602 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:45:14,645 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:46:36,672 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:46:36,738 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:47:00,293 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:47:00,378 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:51:22,238 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:51:23,173 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:52:10,584 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:52:10,611 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:52:57,878 [ERROR] django.request: Internal Server Error: /home/visual_ajax_4/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 462, in visual_ajax_4
+    vendor_names = DMP.input_vendor_names
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:52:57,953 [ERROR] django.request: Internal Server Error: /home/visual_ajax_1_2_3/
+Traceback (most recent call last):
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+    response = get_response(request)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMPVenv\lib\site-packages\django\views\decorators\csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "C:\Users\DRL-Team\Desktop\DMP\DMP_2\DMP_API\DMP_APP\views_visual_1.py", line 367, in visual_ajax_1_2_3
+    fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=DMP.input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
+AttributeError: type object 'DMP' has no attribute 'input_vendor_names'
+2021-12-11 01:58:38,096 [ERROR] django.request: HTTP Version Not Supported: /home/visual_ajax_1_2_3/
+2021-12-11 01:58:38,447 [ERROR] django.request: HTTP Version Not Supported: /home/visual_ajax_4/
+2021-12-11 02:37:47,710 [ERROR] django.request: HTTP Version Not Supported: /home/search/
+2021-12-11 02:37:55,068 [ERROR] django.request: HTTP Version Not Supported: /home/search/

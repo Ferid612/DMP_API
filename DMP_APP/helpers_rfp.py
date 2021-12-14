@@ -5,6 +5,10 @@ from fuzzywuzzy import fuzz
 import datetime
 import plotly.graph_objects as go
 import plotly.express as px
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.cluster import DBSCAN
+from DMP_API.settings import BASE_DIR
+
 
 CRED = '\033[91m'
 CEND = '\033[0m'
@@ -334,7 +338,6 @@ def update_layout_fig_1_1(fig):
 
     return fig
 
-
 def update_layout_fig_1_2(plot_bg_color):
 
     fig = go.Figure(go.Bar(
@@ -362,6 +365,9 @@ def update_layout_fig_1_2(plot_bg_color):
     fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
 
     return fig
+
+
+
 
 def plot_2_1_pb(fig, all_drop_df, sorted_list):
     
@@ -549,6 +555,8 @@ def update_layout_fig_2_1(fig):
     fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='rgb(230, 230, 230)')
 
     return fig
+
+
 
 
 def plot_3_1_pb(fig, all_increase_df, sorted_list):
@@ -890,7 +898,7 @@ def update_layout_fig_5_1(fig, y_, delta,  total_spends, colors, count):
 def update_layout_fig_6(fig, plot_bg_color):
 
     fig.update_layout(title="", xaxis_title="", yaxis_title="Total Spend, $", legend_title="Category names", height=450, width=640, plot_bgcolor=plot_bg_color,)
-    # fig.update_xaxes(type='category',     tickformat="%Y", )
+    fig.update_xaxes(type='category',     tickformat="%Y", )
     fig.update_layout(xaxis=dict(tickformat="%Y"))          
 
     fig.update_layout(legend=dict( yanchor="top", y=1, xanchor="left", x=0.00))
@@ -901,6 +909,290 @@ def update_layout_fig_6(fig, plot_bg_color):
     fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='rgb(230, 230, 230)')
 
     return fig
+
+def normalize_pricebook(app_rfp_df):
+
+    types_of_UoM = { 'Weight': {'KG': 1, 'LO': 0.015, 'BAL': 217.72, 'LB':0.45},
+                        'Area':   {'M2': 1, 'JO': 1.6},
+                        'Length': {'M': 1, 'FT': 0.3048, 'LN': 1, 'LS': 1, 'IN': 0.0254, 'KM': 1000, 'ROL': 1, 'FOT': 0.3048},
+                        'Volume': {'L': 1, 'DR': 208.2, 'GAL': 3.79, 'M3': 1000, 'PL': 1, 'ML': 0.001, 'BTL': 0.75} }
+
+
+    i = 0
+    for index, row in app_rfp_df.iterrows():
+        for key in types_of_UoM:
+            a = types_of_UoM[key]
+            if  row['UOM'] in a.keys():
+                print('BP Material / Service Master No.', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('BP Material / \nService Master No.')])
+                print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')])
+                print('2021  rates', app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')])
+                print('a[row[UOM]]', a[row['UOM']])
+
+                app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2021 rates')] / a[row['UOM']]
+                app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] = app_rfp_df.iat[i, app_rfp_df.columns.get_loc('2020 rates')] / a[row['UOM']]
+                app_rfp_df.iat[i, app_rfp_df.columns.get_loc('UOM')] = next(iter(a))
+        i += 1
+    
+    values_contains = ['pack of', '/pack', 'pk of', '/pk', 'pkt of', '/pkt', 'per pack', 'drum of']
+    values_ends = ['/pac', '/pa', '/p']
+    app_rfp_df['UOM_label'] = 0
+    
+    try:
+        app_rfp_df.reset_index(inplace=True, drop=True)
+    except:
+        pass
+
+    list_of_mids = []
+    for index, row in app_rfp_df.iterrows():
+        material_id = row['BP Material / \nService Master No.']
+        supp_desc = row['Supplier Description'].split(',')
+        short_desc = row['BP Short Description'].split(',')
+        long_desc = row['BP Long Description'][:40].split(',') 
+        material_id = str(material_id).replace(' ', '')
+
+        if row['UOM'] in ['EA', 'PH', 'BOX', 'PK']:
+            flag = 0
+            desc_word_list  = list(set(supp_desc).union(set(short_desc)))
+            for word in desc_word_list:
+                for value in values_contains:
+                    if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
+                        newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
+                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                        if len(listOfNumbers) > 1:
+                            try:
+                                newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
+                                listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                if len(listOfNumbers) == 0:
+                                    listOfNumbers = re.findall(r'\d+', newstr)
+
+                                if len(listOfNumbers) == 0:
+                                    newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
+                                    listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                    if len(listOfNumbers) == 0:
+                                        listOfNumbers = re.findall(r'\d+', newstr)
+
+                            except:
+                                continue
+                        if len(listOfNumbers) != 1:
+                            continue
+                        each_count = listOfNumbers[0]
+                        list_of_mids.append(row['BP Material / \nService Master No.'])
+                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
+                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
+                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
+                        app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
+                        row['UOM_label'] = 1
+                        flag = 1
+                        break
+                if flag == 1:
+                    break
+
+            if flag == 0:  
+                if fuzz.partial_ratio(short_desc, long_desc) >= 50:
+                    desc_word_list  = row['BP Long Description'].split(',') 
+                    for word in desc_word_list:
+                        for value in values_contains:
+                            if value.lower() in word.lower() or word.lower().endswith('/pac') or word.lower().endswith('/pa') or word.lower().endswith('/p') :
+                                newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in word)
+                                listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+
+                                if len(listOfNumbers) > 1:
+                                    try:
+                                        newstr =  word.lower()[word.lower().find(value.lower()):word.lower().find(value.lower())+len(value) + 5]
+                                        listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                        if len(listOfNumbers) == 0:
+                                            listOfNumbers = re.findall(r'\d+', newstr)
+
+                                        if len(listOfNumbers) == 0:
+                                            newstr =  word.lower()[word.lower().find(value.lower())-5:word.lower().find(value.lower())]
+                                            listOfNumbers = [float(i) for i in newstr.split() if is_float(i)]
+                                            if len(listOfNumbers) == 0:
+                                                listOfNumbers = re.findall(r'\d+', newstr)
+
+                                    except:
+                                        continue
+                                if len(listOfNumbers) != 1:
+                                    continue
+                                each_count = listOfNumbers[0]
+                            
+                                list_of_mids.append(row['BP Material / \nService Master No.'])
+                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2021 rates')] /= float(each_count)
+                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('2020 rates')] /= float(each_count)
+                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM')] = 'EA'
+                                app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] = 1
+                                row['UOM_label'] = 1
+                                flag = 1
+                                break
+                        if flag == 1:
+                            break
+
+
+     
+            alt_uom_df = pd.read_csv(str(BASE_DIR) + "/static/AGT alternative UOM.csv", error_bad_lines=False, dtype="unicode")
+        
+        
+        if alt_uom_df[alt_uom_df['Material ID'] == str(material_id)].shape[0] > 0: #okay just one minute okay          
+            al_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['AUn'].tolist()[0]
+            b_un = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['BUn'].tolist()[0]
+            counter = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Counter'].tolist()[0]
+            denom = alt_uom_df[alt_uom_df['Material ID'] == str(material_id)]['Denom.'].tolist()[0]
+            fraction = (int(counter) / int(denom))
+    
+            
+            uom_group_list = ['PH', 'PK', 'PAC']  # holds uoms that represents group
+
+            if app_rfp_df.iat[index, app_rfp_df.columns.get_loc('UOM_label')] != 1 and  (al_un in uom_group_list  and row['UOM'] in uom_group_list):                        
+                    app_rfp_df.loc[index, '2021 rates'] = app_rfp_df.loc[index, '2021 rates'] / fraction
+                    app_rfp_df.loc[index, '2020 rates'] = app_rfp_df.loc[index, '2020 rates'] / fraction
+                    app_rfp_df.loc[index, 'UOM'] = b_un
+
+
+    return app_rfp_df
+
+def check_description_2(x, desc):
+    return float(len(set(x).intersection(desc)) / len(set(x).union(desc)))
+
+def find_a2a_non_pricebook(new_df):
+    
+    # Step - 1  (material id: yes   |   part number: yes)
+    df_1 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
+    new_df.loc[df_1.index.tolist(), 'Material/Service No.'] = new_df.loc[df_1.index.tolist(), 'Material/Service No.'] + ' (' + new_df.loc[df_1.index.tolist(), 'Manufacturer Part No.'] + ')'
+
+
+    # Step - 2  (material id: no   |   part number: yes)
+    df_2 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] != '#')].copy()
+    df_2['labels'] = -1
+    groups = df_2.groupby("Manufacturer Part No.")
+    max_label = 0
+    i=0
+    for name, group in groups:
+        corpus = group['PO Item Description'].tolist()
+        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1,2))
+        X2 = vectorizer2.fit_transform(corpus)
+
+        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
+        dbscan = DBSCAN(eps=3.8, min_samples=1)
+        model = dbscan.fit(counts.values) 
+        max_label = len(group['labels'].unique().tolist()) + max_label
+        
+        group['labels'] = max_label + model.labels_
+        df_2.loc[group.index.tolist(), 'labels'] = group['labels']
+        i += 1
+
+    df_2['labels'] = df_2['labels'].astype('str')
+    new_df.loc[df_2.index.tolist(), 'Material/Service No.'] = new_df.loc[df_2.index.tolist()]['Manufacturer Part No.'] + ' (' + df_2['labels'] + ') B' 
+
+    
+    # Step - 3  (material id: yes   |   part number: no)
+    df_3 = new_df[(new_df['Material/Service No.'] != '#') & (new_df['Manufacturer Part No.'] == '#')]
+    df_3['labels'] = -1
+    groups = df_3.groupby("Material/Service No.")
+    max_label = 0
+    i=0
+    for name, group in groups:
+        corpus = group['PO Item Description'].tolist()
+        vectorizer2 = CountVectorizer(analyzer='word', ngram_range=(1, 2))
+        X2 = vectorizer2.fit_transform(corpus)
+        counts = pd.DataFrame(X2.todense(), columns=vectorizer2.get_feature_names())
+        
+        model = dbscan.fit(counts.values)
+        max_label = len(group['labels'].unique().tolist()) + max_label
+        group['labels'] = max_label + model.labels_
+        df_3.loc[group.index.tolist(), 'labels'] = group['labels']
+        i += 1
+
+        
+    df_3['labels'] = df_3['labels'].astype('str')
+    new_df.loc[df_3.index.tolist(), 'Material/Service No.'] = new_df.loc[df_3.index.tolist()]['Material/Service No.'] + ' (' + df_3['labels'] + ') C' 
+
+
+    # Step - 4  (material id: no   |   part number: no)
+    df_4 = new_df[(new_df['Material/Service No.'] == '#') & (new_df['Manufacturer Part No.'] == '#')]
+    
+
+    list_of_descriptions = df_4['PO Item Description'].value_counts().index.tolist()
+    df_4['desc_words_short'] = df_4['PO Item Description'].apply(lambda x: x.replace(':', ' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
+    i = 1
+    for description in list_of_descriptions:
+        
+        description = set(description.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').split())
+        df_4['score'] = df_4['desc_words_short'].apply(lambda x: check_description_2(x, description))
+        out_df = df_4[df_4['score'] > 0.6]
+        df_4 = df_4[df_4['score'] <= 0.6]
+        new_df.loc[out_df.index.tolist(), 'Material/Service No.'] = 'D (' + str(i) + ')' 
+        i += 1
+
+    return new_df
+
+def find_price_raisen_materials_pb(new_a2a):
+    new_a2a['Average Price'] = new_a2a['Unit Price'].groupby(new_a2a['Material/Service No.']).transform('mean')
+    new_a2a['delta'] = 0.0
+    new_a2a['Increase percentage'] = 0.0
+    new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'delta'] = new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['2021 rates'] - new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']
+    new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'Increase percentage'] = (new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['delta'] / new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']) * 100
+
+
+    weight_df = pd.DataFrame(new_a2a.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
+    weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
+    weight_df.reset_index(inplace=True)
+    new_a2a = pd.merge(new_a2a, weight_df,  how='left', on='Material/Service No.')
+
+
+
+    new_a2a['Item Weight'] = new_a2a['Item Total Spend'] / (new_a2a['PO Item Value (GC)'].sum())
+    
+    new_a2a['Increase percentage'] = new_a2a['Increase percentage'].apply(np.ceil)
+    new_a2a['Average Price'] = round(new_a2a['Average Price'], 2)
+    increase_df = new_a2a[new_a2a['Increase percentage'] > 0]
+    increase_df.sort_values(by='PO Item Creation Date', inplace=True)
+    unique_increase_df = increase_df.drop_duplicates(subset = ['Material/Service No.'], keep = 'last') 
+    unique_increase_df['Proposed Price'] =  unique_increase_df['2021 rates'].astype('str')
+
+    return unique_increase_df
+
+
+
+def find_price_raisen_materials_non_pb(new_df):
+    
+    today = pd.to_datetime("today").normalize()
+    one_year_before = today - datetime.timedelta(days=3*365)
+    starting_date = one_year_before.replace(month=1, day=1)   # 2020-01-01
+    one_year_before = today - datetime.timedelta(days=1*365)  # 2020-12-31
+    ending_date = one_year_before.replace(month=12, day=31)
+    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
+    new_df = new_df[(new_df['PO Item Creation Date'] >= starting_date) & (new_df['PO Item Creation Date'] <= ending_date)]
+    
+    df_23 = new_df.groupby(['Material/Service No.']).filter(lambda x: len(x) > 1)
+    df_23['PO Item Value (GC)'] = df_23['PO Item Value (GC)'].astype('float')
+
+    weight_df = pd.DataFrame(df_23.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
+    weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
+    weight_df.reset_index(inplace=True)
+    df_23 = pd.merge(df_23, weight_df,  how='left', on='Material/Service No.')
+    df_23['Item Weight'] = df_23['Item Total Spend'] / (df_23['PO Item Value (GC)'].sum())
+
+    df_23['Average Price'] = df_23['Unit Price'].groupby(df_23['Material/Service No.']).transform('mean')
+    df_23['Last Price'] = df_23.loc[df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Unit Price']
+
+    df_23['Average Price'] = round(df_23['Average Price'], 2)
+    df_23['Last Price'] = round(df_23['Last Price'], 2)
+    increase_df_23 = df_23[df_23['Average Price'] < df_23['Last Price']]
+    increase_df_23['delta'] = 0.0
+    increase_df_23['percentage'] = 0.0
+
+    increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'delta'] = increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Last Price'] - increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']
+    increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'percentage'] = (increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['delta'] / increase_df_23.loc[increase_df_23.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Average Price']) * 100
+    increase_df_23['Increase percentage'] = increase_df_23['percentage'].apply(np.ceil)
+    increase_df_23['From Pricebook'] = 'NO'
+    
+    increase_df_23['2021 rates'] = increase_df_23['Last Price']
+
+    return increase_df_23
+
+
+
+
+
 
 
 

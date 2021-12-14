@@ -1,3 +1,4 @@
+from DMP_API.settings import BASE_DIR
 import math
 import numpy as np
 import pandas as pd
@@ -6,8 +7,9 @@ from fuzzywuzzy import fuzz
 from .custom_logic import *
 from . import views_visual_1
 from django.views.decorators.csrf import csrf_exempt
-from DMP_API.settings import BASE_DIR
+import datetime
 import warnings
+
 warnings.filterwarnings('ignore')
 
 def get_required_columns():
@@ -350,26 +352,25 @@ def get_curency_data():
     return content['quotes']
 
 def parallel_uom(material_id, identifier):
+
     if identifier == 1:
         a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021.csv')
     
     elif identifier == 2:
         a2a = pd.read_csv(str(BASE_DIR) + '/static/new_df_a2a.csv')
 
-    
+        
+        a2a['PO Item Description'] = a2a['PO Item Description'].replace(np.nan, ' ', regex=True)    
+        a2a['Long Description'] = a2a['Long Description'].replace(np.nan, ' ', regex=True)
+
+        a2a = get_last_3_years_data(a2a)
+
     a2a['PO Item Creation Date'] = pd.DatetimeIndex(a2a['PO Item Creation Date'])
     a2a = a2a[a2a['PO Item Creation Date'] >= '2018-01-01']
 
-    if material_id == 36500878596:
-        print('36500878596  :', material_id)
-
     a2a_conv = pd.DataFrame(columns=a2a.columns,)
-    
     temp_df = a2a.loc[a2a['Material/Service No.'] == material_id]
-    if temp_df.shape[0] == 0:
-        print('MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM, ', material_id)
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, ', a2a.shape)
-        
+    
     temp_df = normalize(temp_df)
     
     return temp_df
@@ -522,6 +523,7 @@ def update_converted_price(in_data, min_label):
     return in_data
 
 def normalize(in_data):
+   
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
 
@@ -530,7 +532,6 @@ def normalize(in_data):
 
     in_data['Converted Price'] = in_data['Unit Price']
     in_data.reset_index(inplace=True, drop=True)
-    
     material_id = in_data['Material/Service No.'].unique().tolist()[0]
 
     if in_data.shape[0] > 0:
@@ -538,13 +539,12 @@ def normalize(in_data):
         values_ends = ['/pac', '/pa', '/p']
         in_data['UoM_label'] = 0
 
-        if material_id == 36500878596:
-            print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB    33333333333: ',  in_data['Converted Price'])
-
         for index, row in in_data.iterrows():
             short_desc = row['PO Item Description'].split(',')
-            long_desc = row['Long Description'][:40].split(',') 
             
+            long_desc = row['Long Description'][:40].split(',') 
+        
+
             if row['PO Item Quantity Unit'] in ['EA', 'PH', 'BOX', 'PK']:
                 flag = 0
                 desc_word_list  = short_desc            
@@ -554,19 +554,6 @@ def normalize(in_data):
                     if fuzz.partial_ratio(short_desc, long_desc) >= 50:
                         desc_word_list  = row['Long Description'].split(',')
                         in_data, flag = update_unit_price(in_data, index, desc_word_list, values_contains)
-
-        if material_id == 36500878596:
-            print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB    4444444444: ',  in_data['Converted Price'])
-
-
-        if str(material_id) == '36500878596':
-            print('BEFOREeeeeeeeeeeeeeeeeeeee :  ', in_data.loc[(in_data['Material/Service No.'] == material_id) & (in_data['UoM_label'] != 1)]['Unit Price'])
-        
-        in_data = normalization_based_alternative_uom(in_data, "Cavidan")
-                        
-        if str(material_id) == '36500878596':
-            print('AFTERrrrrrrrrrrrrrrrrrrrrr :  ', in_data.loc[(in_data['Material/Service No.'] == material_id) & (in_data['UoM_label'] != 1)]['Unit Price'])
-
 
 
         if in_data.shape[0] > 1:
@@ -632,13 +619,8 @@ def preprocess_search_data(df, input_region):
     df['Product Category Description'] = df['Product Category Description'].astype('str')
     df['Product Category'] = df['Product Category'].astype('str')
 
-    
-    print('\n\n\n')
-    print('11111111111111111111111111: ', df.shape)
     df=df[df['Region']==input_region]
     
-    print('22222222222222222222222222: ', df.shape)
-
     df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
     df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)    
 
@@ -655,17 +637,23 @@ def preprocess_search_data(df, input_region):
     df['Manufacturer Part No.'] = df['Manufacturer Part No.'].str.replace(' ', '')
     df['Manufacturer Name'] = df['Manufacturer Name'].str.replace(' ', '')
 
-    print('33333333333333333333333333: ', df.shape)
-    print('\n\n\n')
 
     return df
 
 
     
 
+def get_last_3_years_data(new_df):
 
+    today = pd.to_datetime("today").normalize()
+    one_year_before = today - datetime.timedelta(days=3*365)
+    starting_date = one_year_before.replace(month=1, day=1)   # 2018-01-01
+    one_year_before = today - datetime.timedelta(days=1*365)  # 2020-12-31
+    ending_date = one_year_before.replace(month=12, day=31)
+    new_df['PO Item Creation Date'] = pd.DatetimeIndex(new_df['PO Item Creation Date'])
+    new_df = new_df[(new_df['PO Item Creation Date'] >= starting_date) & (new_df['PO Item Creation Date'] <= ending_date)]
 
-
+    return new_df
 
 
 
