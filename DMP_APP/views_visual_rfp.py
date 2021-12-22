@@ -35,6 +35,7 @@ from multiprocessing import Pool
 
 
 
+
 import warnings
 warnings.filterwarnings('ignore')
 class DMP_RFP(DMP):
@@ -1238,6 +1239,7 @@ class DMP_RFP(DMP):
                 #*cheking user status
                 user_type=check_user_status(request)['user_type']  
                 if user_type == 'customer':
+                    global plot_bg
                     input_min_date= request.POST.get('input_min_date')
                     input_max_date= request.POST.get('input_max_date')
                     input_categories=request.POST.getlist('categories_rfp[]')
@@ -1323,7 +1325,7 @@ class DMP_RFP(DMP):
                             fig.add_trace(fig2.data[0])
 
                             
-                            fig = update_layout_fig_6(fig, DMP.plot_bg)
+                            fig = update_layout_fig_6(fig, plot_bg)
                             fig.update(layout_coloraxis_showscale=False)
                         
                             div_1 = opy.plot(fig, auto_open=False, output_type='div')

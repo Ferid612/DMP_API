@@ -13,9 +13,8 @@ def register_user(request):
     if request.method =='POST':
 
         # * cheking user status
-        user_type="not_user"
-        user_type = check_user_status(request)['user_type']
-        if user_type == "customer":
+        # user_type="not_user"
+        # user_type = check_user_status(request)['user_type']
             first_name = request.POST.get('first_name')
             last_name= request.POST.get('last_name')
             company_name = request.POST.get('company_name')
@@ -43,17 +42,10 @@ def register_user(request):
 
             print(first_name,last_name,company_name,mail_address,phone_number,message_to_us)
         
-            response = JsonResponse({
-            "response":"succesfully"       })
+            response = JsonResponse({"response":"succesfully"})
             add_get_params(response)
             return response
-        else:
             
-            #* return user not access code - 501
-            response = JsonResponse({'error_text':"You have not access"})
-            response.status_code = 501
-            add_get_params(response)
-            return response        
     else:
         response = JsonResponse({'this_post': "DMP save app to app in search",})    
         add_get_params(response)

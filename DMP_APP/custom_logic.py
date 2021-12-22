@@ -9,34 +9,66 @@ import logging
 import pandas as pd
 user="Farid"
 # user="Javidan"
+import time
+import schedule
+from django.core.mail import send_mail
+import os
+def check_token_time():
+    print("Cheking user session time...")
 
+            
+    with Session(engine) as session:
+        user_session = session.query(USER_SESSION)
 
-
-
-
-
-
-
-@csrf_exempt
-def upload_sql_table(request):
-    user_type = "not_user"
-    file_name = 'pricebook'
-    
+        for user in user_session:
+            timeout = int(user.timeout)
+            timeout -= 60
+            user.timeout= timeout
+            user_id = user.user_id
+            print("User session time: ", user_id)
+            print("User session time: ", timeout)
+            
+            if timeout < 0:
+                new_token=secrets.token_hex(64)
+                user.categories_in_result=""
+                user.result_data_app=""
+                user.result_data_app_copy=""
+                
+                try:
+                    os.remove(str(BASE_DIR) + "/static/all_dataframe_" + str(user_id) + ".csv")
+                    os.remove(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv")
+                    os.remove(str(BASE_DIR) + "/static/df_org_" + str(user_id) + ".csv")
+                except Exception as e:
+                    pass
+                                
+                user.user_token= new_token
+                
+                
+                
+                user.timeout= 1200
+        session.commit()
+        
+        
+  
+flag_for_job = 1
+@csrf_exempt 
+def check_token_time_call(request):
     try:
-        input_user_name = request.POST.get('input_user_name')
-        input_token = request.POST.get('input_token')
-        
-        print("\033[92m input_user_name: " , input_user_name)
-        print("input_token: " , input_token, '\033[0m')
-        
-        # creat SQL TABLE With pandas dataframe
-        
-        with Session(engine) as session:
-            df = pd.read_csv(str(BASE_DIR) + '/static/connection_supplier_customer.csv')
-            df.to_sql(file_name, engine, if_exists='replace', index=False)
-
-
-
+        global flag_for_job
+        if flag_for_job == 1:
+            print("i call check_token_time")
+            schedule.every(5).seconds.do(check_token_time)
+            flag_for_job = 2
+            while True:
+                schedule.run_pending()
+                time.sleep(1) 
+        else:
+            response = JsonResponse({      
+            'answer':"cheking was started"
+            })
+            add_get_params(response)
+            return response
+            
     except Exception as e:
         my_traceback = traceback.format_exc()
         logging.error(my_traceback)
@@ -46,34 +78,143 @@ def upload_sql_table(request):
                                     })
         response.status_code = 505
         add_get_params(response)
-        response['user_type'] = user_type
         return response 
 
-    try:            
-        with engine.connect() as con:
-            # query_1='ALTER TABLE '+file_name.lower()+ ' ALTER COLUMN '+file_name.lower() +'_ID SET NOT NULL;'            
-            query_2='ALTER TABLE '+file_name.lower()+ ' ADD PRIMARY KEY (pricebook_id);'
-            # con.execute(query_1)  
-            con.execute(query_2)
+
+
+@csrf_exempt
+def contact_us(request):
+    try:
+        full_name = request.POST.get('name')
+        email = request.POST.get('email')
+        message = request.POST.get('message')
+        phone = request.POST.get('phone')
+              
+        # full_name = 'DMP BESTRACK'
+        # email = 'dmp.bestrack@gmail.com'
+        # message = "html_message"
+        time='time'
+
+
+        print("Contact: ", full_name)
+        print("Contact: ", email)
+        print("Contact: ", message)
+        print("Contact: ", phone)
+        
+        
+   
+
+        #send_mail
+        send_mail(
+            "Contack-Us from: "+ full_name , #subject
+            
+            
+            "User Email: "+'email'+" Request for discount: "+'message',    #message
+            
+            
+            email, #from email
+            
+            
+            ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.bestrack@gmail.com", "prodigitrack.dmp@gmail.com"],  
+            
+            
+            html_message=message)
+
+
     except Exception as e:
-        print("\033[93m eerror in primari key: ",e)
-
-
-
+        print("mail sending error: ", e)
 
 
     response = JsonResponse({      
-    'user_type':user_type
+    'user_type':"user_type"
     })
+
     add_get_params(response)
-    response['user_type'] = user_type
-    print("\033[92m Uploaded to SQL DATABASE SUCCESSFULLY" '\033[0m')
+    print("\033[92m Send mail SUCCESSFULLY" '\033[0m')
     return response
+
+@csrf_exempt
+def upload_sql_table(request):
+    if request.method == 'POST':
+        try:    
+            
+            #*cheking user status
+            user_type=check_user_status(request)['user_type']  
+            if user_type == 'customer' or user_type == 'supplier':
+                user_type = "not_user"
+                file_name = 'pricebook'
+                
+                try:
+                    input_user_name = request.POST.get('input_user_name')
+                    input_token = request.POST.get('input_token')
+                    
+                    print("\033[92m input_user_name: " , input_user_name)
+                    print("input_token: " , input_token, '\033[0m')
+                    
+                    # creat SQL TABLE With pandas dataframe
+                    
+                    with Session(engine) as session:
+                        df = pd.read_csv(str(BASE_DIR) + '/static/connection_supplier_customer.csv')
+                        df.to_sql(file_name, engine, if_exists='replace', index=False)
+
+
+
+                except Exception as e:
+                    my_traceback = traceback.format_exc()
+                    logging.error(my_traceback)
+                    print('\33[91m my_traceback_612', my_traceback,'\33[0m')
+                    response = JsonResponse({'error_text':str(e),
+                                                'error_text_2':my_traceback
+                                                })
+                    response.status_code = 505
+                    add_get_params(response)
+                    response['user_type'] = user_type
+                    return response 
+
+                try:            
+                    with engine.connect() as con:
+                        # query_1='ALTER TABLE '+file_name.lower()+ ' ALTER COLUMN '+file_name.lower() +'_ID SET NOT NULL;'            
+                        query_2='ALTER TABLE '+file_name.lower()+ ' ADD PRIMARY KEY (pricebook_id);'
+                        # con.execute(query_1)  
+                        con.execute(query_2)
+                except Exception as e:
+                    print("\033[93m eerror in primari key: ",e)
+
+
+
+                response = JsonResponse({      
+                'user_type':user_type
+                })
+                add_get_params(response)
+                response['user_type'] = user_type
+                print("\033[92m Uploaded to SQL DATABASE SUCCESSFULLY" '\033[0m')
+                return response
+
+            else:
+                response = JsonResponse({'Answer': "You have have not access to this query.", })
+                response.status_code=501
+                add_get_params(response)
+                return response
+        except Exception as e:
+            my_traceback = traceback.format_exc()
+            logging.error(my_traceback)
+            response = JsonResponse({'error_text':str(e),
+                                        'error_text_2':my_traceback
+                                        })
+            response.status_code = 505
+            
+            add_get_params(response)
+            return response 
+    else:
+        response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
+        add_get_params(response)
+        return response
+
 
 @csrf_exempt
 def check_user_status(request):
     user_type = "not_user"
-    
+    user_id = -5
     try:
         input_user_name = request.POST.get('input_user_name')
         input_token = request.POST.get('input_token')
@@ -97,7 +238,15 @@ def check_user_status(request):
                 .select_from(DMP_USERS).join(USER_SESSION, USER_SESSION.user_id==DMP_USERS.user_id)
                 .filter(DMP_USERS.user_name==input_user_name)
                 .order_by(DMP_USERS.user_name))   
-            
+        
+   
+   
+            user=session.query(USER_SESSION)\
+            .select_from(USER_SESSION)\
+            .join(DMP_USERS, USER_SESSION.user_id==DMP_USERS.user_id)\
+            .filter(DMP_USERS.user_name==input_user_name)
+
+
             sql_table = serializer(sql_table)
             
             user_token = sql_table[0]['user_token']
@@ -110,7 +259,17 @@ def check_user_status(request):
                 user_type = sql_table[0]['user_type']
             else:
                 user_type="not_user"
+
+        with Session(engine) as session:
+            user_session = session.query(USER_SESSION)
+
+            for user in user_session:
+                
+                if str(user.user_id) == str(user_id):
+                    user.timeout= 1200
                     
+            session.commit()
+   
     except Exception as e:
         my_traceback = traceback.format_exc()
         logging.error(my_traceback)

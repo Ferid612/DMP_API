@@ -50,6 +50,7 @@ import time
 from .custom_logic import *
 import logging 
 # from .helpers import *
+import os.path
 
 
 
@@ -60,29 +61,34 @@ warnings.filterwarnings('ignore')
 
 
 try:
-    df = pd.read_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', parse_dates=['PO Item Creation Date'], dtype="unicode")
+    df = pd.DataFrame()
+    uploaded_file_path = str(BASE_DIR) + '/static/df_all_regions_uploaded.csv'
+    if os.path.isfile(uploaded_file_path)  : 
+        
+        df = pd.read_csv(uploaded_file_path, parse_dates=['PO Item Creation Date'], dtype="unicode")
+        
+        print('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
 
-    print('TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
+        df = df[df['Region'] == 'AGT']
+        df = df[df['PO Status Name'] != 'Deleted']
+        df = df[df['PO Status Name'] != 'Held']
+        df = df[df['PO Item Deletion Flag'] != 'X']
 
-    df = df[df['Region'] == 'AGT']
-    df = df[df['PO Status Name'] != 'Deleted']
-    df = df[df['PO Status Name'] != 'Held']
-    df = df[df['PO Item Deletion Flag'] != 'X']
+        all_rows=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","PO Item Description", "Manufacturer Name", "Vendor Name", 
+                    "Manufacturer Part No.", "Long Description","PO Item Creation Date","PO Item Quantity", "PO Item Quantity Unit", "PO Item Value (GC)",
+                    "PO Item Value (GC) Unit", "Product Category", "Product Category Description", "PO Status Name", 'Region']
 
-    all_rows=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","PO Item Description", "Manufacturer Name", "Vendor Name", 
-                "Manufacturer Part No.", "Long Description","PO Item Creation Date","PO Item Quantity", "PO Item Quantity Unit", "PO Item Value (GC)",
-                "PO Item Value (GC) Unit", "Product Category", "Product Category Description", "PO Status Name", 'Region']
 
-    df = df[all_rows]
-    df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
-    df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)
-    
-    df['score'] = -1.0
-    df['path'] = ''
-    df['desc'] = ''
-    
-    df['desc_words_short'] = [short_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for short_desc in df['PO Item Description'].values]
-    df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for long_desc in df['Long Description'].values]
+        df = df[all_rows]
+        df['PO Item Description'] = df['PO Item Description'].replace(np.nan, ' ', regex=True)    
+        df['Long Description'] = df['Long Description'].replace(np.nan, ' ', regex=True)
+        
+        df['score'] = -1.0
+        df['path'] = ''
+        df['desc'] = ''
+        
+        df['desc_words_short'] = [short_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for short_desc in df['PO Item Description'].values]
+        df['desc_words_long'] = [long_desc.replace(':',' ').replace(': ',' ').replace(',',' ').replace(', ',' ').replace(';',' ').replace('; ',' ').replace('-',' ').replace('/',' ').split() for long_desc in df['Long Description'].values]
 
 except Exception as e:
 

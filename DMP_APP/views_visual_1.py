@@ -20,13 +20,17 @@ from .models import DMP_USERS
 import traceback
 import logging
 
+plot_bg='rgba(255, 255,255, 0.8)'
+
 class DMP:
-    plot_bg='rgba(255, 255,255, 0.8)'
+    # plot_bg='rgba(255, 255,255, 0.8)'
     uploaded_historical_data = []
-    
+    global plot_bg
     @csrf_exempt
     def __init__(self):
         print("_init_")
+
+
 
 
     @csrf_exempt 
@@ -36,12 +40,12 @@ class DMP:
             try:    
                 
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_type = check_user_status(request)['user_type']  
                 if user_type == 'customer':
-                    df=upload_file_helpers(request)
-                    DMP.uploaded_historical_data = df
+                    user_id = request.POST.get('user_id')                
+                    df = upload_file_helpers(request)
                    
-                    df.to_csv(str(BASE_DIR) + "/static/uploaded_historical_data.csv",index = False)
+                    df.to_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv", index = False)
                     response = JsonResponse({'answerr': "Success", })
                 
                     add_get_params(response)
@@ -66,6 +70,7 @@ class DMP:
             add_get_params(response)
             return response
 
+
     @csrf_exempt 
     def check_file_historical(request): 
        
@@ -76,12 +81,17 @@ class DMP:
             
             if user_type != 'not_user':
                 check_data=False
+                user_id = request.POST.get('user_id')
                 try:    
              
-                    #* check uploaded historical data 
-                    df=DMP.uploaded_historical_data
-                    if df.shape[0]>0:
-                        check_data=True
+                    #* check uploaded historical data
+                     
+                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv",)
+                    
+                    if str(type(df)).split() != "<class 'list'>".split():
+                        print("Uploaded historical data df type: ", type(df))
+                        if df.shape[0]>0:
+                            check_data=True
                         
                 except:
                     
@@ -94,6 +104,7 @@ class DMP:
                                         })
                 
                 #* adding response parameters
+
                 add_get_params(response)
                 return response
             else:
@@ -114,7 +125,7 @@ class DMP:
     def searching(request):
         if request.method =='POST':
             try: 
-                user_type=check_user_status(request)['user_type']    
+                user_type = check_user_status(request)['user_type']    
                 if user_type != 'not_user':
                     #* get all input data in inputs
                     input_region_name = request.POST.get('region')  
@@ -124,50 +135,32 @@ class DMP:
                     input_manufacturer_name = request.POST.get('manufacture')  
                     input_vendor_names = request.POST.getlist('vendor_names[]')
                     input_proposed_prices= request.POST.getlist('proposed_prices[]')
-                    input_currencies = request.POST.getlist('currencies[]')
-                    
-                
+                    input_currencies = request.POST.getlist('currencies[]')     
+                    user_id = request.POST.get('user_id')
+
 
                     #FIXME: correct dataframe for different user 
-                    df = DMP.uploaded_historical_data
+                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv",)
+                    
                     processed_df = preprocess_search_data(df, input_region_name)
-                                        
+
                     df_org = processed_df.copy()
-                    DMP.df_org = df_org
+                    df_org.to_csv(str(BASE_DIR) + "/static/df_org_" + user_id + ".csv", index = False)
                     
                     
                     all_dataframes_from_searching = main_searching_algoritm(input_material_id, input_description, input_manufacturer_part_number, input_manufacturer_name, processed_df)
-                    all_dataframes_from_searching = all_dataframes_from_searching
-                    DMP.all_dataframes_from_searching = all_dataframes_from_searching
-                    
-                    
                     
                     #FIXME: correct dataframe for different user 
                     all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
-                    DMP.all_dataframe = all_dataframe
+                    all_dataframe.to_csv(str(BASE_DIR) + "/static/all_dataframe_" + user_id + ".csv", index = False)
                     
-                    
+                    # df_org.to_csv("cheking_size_df_org.csv", index = False)
                    
-                    
-                    result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])
-                    DMP.result_data_app = result_data_app
-                   
-                   
-                   
-                   
-                   
-                    result_data_app_copy = DMP.result_data_app.copy()
-                    DMP.result_data_app_copy = result_data_app_copy
-                    
-                    #FIXME: correct dataframe for different user in views csv download file   
                     result_data_all = pd.DataFrame(all_dataframes_from_searching['result_data_all'])
-                    DMP.result_data_all=result_data_all
-                    
-                    
-                    # ok
+                    result_data_app = pd.DataFrame(all_dataframes_from_searching['result_app_to_app'])           
+                    result_data_app_copy = result_data_app.copy()
                     result_content = all_dataframes_from_searching['result_content']
                     proposed_prices = DMP.convert_usd(result_content, input_proposed_prices, input_currencies)
-        
                             
                     # get most similar vendor name
                     vendor_names_all_dataframe = processed_df['Vendor Name'].value_counts().index.tolist()
@@ -194,64 +187,63 @@ class DMP:
 
 
                     if result_data_all.shape[0]>0:
-                        #ok    
                         app_unit_of_measure = ['ALL', 'EA', 'PH']
-                        if DMP.result_data_app.shape[0]>0:
-                            for i in DMP.result_data_app['PO Item Quantity Unit'].value_counts().index.tolist():
+                        if result_data_app.shape[0]>0:
+                            for i in result_data_app['PO Item Quantity Unit'].value_counts().index.tolist():
                                 app_unit_of_measure.append(i)
 
-                            df_item = DMP.result_data_app.drop_duplicates(['Material/Service No.'])
+                            df_item = result_data_app.drop_duplicates(['Material/Service No.'])
                             
-                            #FIXME: i dont know    
-                                             
-                            categories_in_result = DMP.result_data_app['Product Category Description'].value_counts().index.tolist()
-                                
-                            DMP.item_numbers_in_result = DMP.result_data_app['Material/Service No.'].value_counts().index.tolist()
-                            DMP.short_desc_in_result = DMP.result_data_app['PO Item Description'].value_counts().index.tolist()
-                            DMP.new_manufacturer_name = [df_item['Manufacturer Name'].value_counts().index.tolist()[0]]
-                                    
+                            categories_in_result = result_data_app['Product Category Description'].value_counts().index.tolist()
+                            item_numbers_in_result = result_data_app['Material/Service No.'].value_counts().index.tolist()
+                            short_desc_in_result = result_data_app['PO Item Description'].value_counts().index.tolist()                           
+                            new_manufacturer_name = [df_item['Manufacturer Name'].value_counts().index.tolist()[0]]
+                            
                             data_list=[]
-                            data_list.append(DMP.item_numbers_in_result)
-                            data_list.append(DMP.short_desc_in_result)
-                            
-                            #FIXME: 
-                            DMP.data_list=data_list
+                            data_list.append(item_numbers_in_result)
+                            data_list.append(short_desc_in_result)
 
-                        #FIXME: 
-                        DMP.apple_to_apple_count = DMP.result_data_app.shape[0]  
-                        DMP.result_count = result_data_all.shape[0]    
+
+                        apple_to_apple_count = result_data_app.shape[0]  
+                        result_count = result_data_all.shape[0]    
+                       
                         #***************** for visual data and filters *****************
                     
 
+                        user_input_desc = all_dataframes_from_searching['user_input_desc']
+                      
                         all_headers=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","Vendor Name","PO Item Description","Manufacturer Name",
                         "Manufacturer Part No.","Long Description","PO Item Creation Date","PO Item Value (GC)","PO Item Value (GC) Unit", "PO Item Quantity Unit", "Unit Price","Converted Price", "score","path",
                         "desc","Select","desc_words_short", "desc_words_long"]
+
+
                         
-                        DMP.all_headers=all_headers
-
-
-
-
-
-
 
                         with Session(engine) as session:
                             input_token = request.POST.get('input_token')
+
                             user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
                             user_session.categories_in_result= categories_in_result
-                           
-                            # user_session.result_data_app = result_data_app.to_json(orient='records')
-                            
+                            user_session.result_data_all = result_data_all.to_json(orient='records')
+                            user_session.result_data_app = result_data_app.to_json(orient='records')
+                            user_session.result_data_app_copy = result_data_app_copy.to_json(orient='records')
+
+                            user_session.item_numbers_in_result = item_numbers_in_result
+                            user_session.short_desc_in_result = short_desc_in_result
+                            user_session.new_manufacturer_name = new_manufacturer_name
+                            user_session.apple_to_apple_count = apple_to_apple_count
+                            user_session.result_count = result_count
+                            user_session.user_input_desc = user_input_desc
+                            user_session.all_headers = all_headers
+                            user_session.data_list = json.dumps(data_list)
                             session.commit()
-
-
 
 
 
                         json_records_all=result_data_all.to_json(orient='records')
                         result_data_all_json=json.loads(json_records_all)
                         
-                        json_records_app = DMP.result_data_app.to_json(orient='records')
+                        json_records_app = result_data_app.to_json(orient='records')
                         result_data_app_json=json.loads(json_records_app)
 
                         response = JsonResponse({
@@ -264,7 +256,7 @@ class DMP:
                                 'user_input_desc': all_dataframes_from_searching['user_input_desc'],
                                 'all_headers': all_headers,
                                 'display_converted_uom':all_dataframes_from_searching['display_converted_uom'],
-                                'apple_to_apple_count':DMP.apple_to_apple_count,
+                                'apple_to_apple_count': apple_to_apple_count,
                             })
                             
                         add_get_params(response)
@@ -298,32 +290,37 @@ class DMP:
 
 
 
+
+
     @csrf_exempt
     def get_filter_data(request):
         if request.method =='POST':
         # Build the POST parameters
-            
+            with Session(engine) as session:
+                input_token = request.POST.get('input_token')
+                user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
+                categories_in_result = user_session.categories_in_result
+                item_numbers_in_result = user_session.item_numbers_in_result
+                short_desc_in_result =user_session.short_desc_in_result
+                new_manufacturer_name = user_session.new_manufacturer_name
+                apple_to_apple_count = user_session.apple_to_apple_count
+                result_count = user_session.result_count
+                data_list = json.loads(user_session.data_list) 
+                
             user_type = check_user_status(request)['user_type']  
             if user_type != 'not_user':
             #! return finded rows data in table 
 
                 response = JsonResponse({
-                        # 'region':DMP.input_region_name,
                         
-                        'region':'AGT',
-                        'material_items':DMP.item_numbers_in_result,
-                        'manufacture_names':DMP.new_manufacturer_name,      
-                        'apple_to_apple_count':DMP.apple_to_apple_count,
-                        'result_count':DMP.result_count,
-                        # 'vendor_names':  DMP.input_vendor_names,
-                        # 'categories':  DMP.categories_in_result,
-                        # 'app_unit_of_measure':DMP.app_unit_of_measure,
-                        # 'prices':DMP.input_proposed_prices,
-                        # 'quantity':8,
-                        # 'incoterms':DMP.input_incoterm_names,
-                        # 'currencies':DMP.input_currencies,
-                        'descriptions':DMP.short_desc_in_result,
-                        'data_list':DMP.data_list,
+                        'material_items' : item_numbers_in_result,
+                        'manufacture_names': new_manufacturer_name,      
+                        'apple_to_apple_count' : apple_to_apple_count,
+                        'result_count': result_count,
+                        'categories': categories_in_result,
+                        'descriptions': short_desc_in_result,
+                        'data_list': data_list,
+
                     })
                     
                 add_get_params(response)
@@ -341,37 +338,7 @@ class DMP:
             add_get_params(response)
             return response
 
-    @csrf_exempt
-    def save_app_to_app_in_search(request):
-        if request.method =='POST':
 
-            # * cheking user status
-            user_type="not_user"
-            user_type = check_user_status(request)['user_type']
-            if user_type == "customer":
-
-                approve_list= request.POST.getlist('approve_list[]')
-                DMP.approve_list_in_search=approve_list
-
-
-                #! return finded rows data in table 
-                response = JsonResponse({
-                    "success":"success",
-                    })
-
-                add_get_params(response)
-                return response
-            else:
-            
-                #* return user not access code - 501
-                response = JsonResponse({'error_text':"You have not access"})
-                response.status_code = 501
-                add_get_params(response)
-                return response        
-        else:
-            response = JsonResponse({'this_post': "DMP save app to app in search",})    
-            add_get_params(response)
-            return response
 
     # Visualization
     def convert_usd(result_content,proposed_prices, currencies):
@@ -379,6 +346,7 @@ class DMP:
         for index, i in enumerate(currencies):
             proposed_prices_in_usd.append(float(proposed_prices[index]) * (1/result_content['quotes']['USD'+i]))
         return proposed_prices_in_usd
+
 
     @csrf_exempt
     def visual_ajax_1_2_3(request):
@@ -389,7 +357,13 @@ class DMP:
                 user_type = check_user_status(request)['user_type']
                 if user_type == "customer":
                 
-                    app_to_app = pd.DataFrame(DMP.result_data_app)            
+                    global plot_bg
+                    with Session(engine) as session:
+                        input_token = request.POST.get('input_token')
+                        user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
+                        result_data_app_json = json.loads(user_session.result_data_app)
+                        app_to_app = pd.json_normalize(result_data_app_json)
+                               
                     input_app_unit_of_measure = request.POST.get('app_unit_of_measure')
                     input_vendor_names = request.POST.getlist('input_vendor_names[]')
                     input_incoterm_names = request.POST.getlist('input_incoterm_names[]')
@@ -398,9 +372,7 @@ class DMP:
                     if input_app_unit_of_measure != 'ALL':
                         app_to_app = app_to_app[app_to_app['PO Item Quantity Unit'] == input_app_unit_of_measure]
 
-                    
                     input_min_date, input_max_date = get_dates(request)
-            
                     #! Plot 1
                     app_to_app['PO Item Creation Date'] = pd.DatetimeIndex(app_to_app['PO Item Creation Date'])
                     app_to_app=  app_to_app[( app_to_app['PO Item Creation Date'] >= input_min_date) & ( app_to_app['PO Item Creation Date'] <= input_max_date)]
@@ -412,7 +384,7 @@ class DMP:
                     for index, i in enumerate(proposed_prices):
                         fig_1.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name=input_vendor_names[index], marker_symbol='star-triangle-up', marker_size=15))
                     
-                    fig_1 = update_layout_fig_1_3(fig_1, DMP.plot_bg)
+                    fig_1 = update_layout_fig_1_3(fig_1, plot_bg)
 
 
 
@@ -439,7 +411,7 @@ class DMP:
                     fig_2 = px.bar(a, x='Year', y='New PO Item Value (GC)', color='Vendor Name',
                                 barmode='stack', text='New PO Item Value (GC) Text', color_discrete_sequence=px.colors.qualitative.Set3,)
                     
-                    fig_2 = update_layout_fig_2(fig_2, max_val, DMP.plot_bg)
+                    fig_2 = update_layout_fig_2(fig_2, max_val, plot_bg)
 
 
                     #! Plot 3
@@ -447,7 +419,7 @@ class DMP:
                     for index, i in enumerate(proposed_prices):
                         fig_3.add_trace(go.Scatter(x=[today], y=[i], mode='markers', name = input_incoterm_names[index] + ' (' + input_vendor_names[index] + ')', marker_symbol='star-triangle-up', marker_size=15))
 
-                    fig_3 = update_layout_fig_1_3(fig_3, DMP.plot_bg)
+                    fig_3 = update_layout_fig_1_3(fig_3, plot_bg)
 
 
                     #! return finded rows data in table 
@@ -500,6 +472,7 @@ class DMP:
                 user_type = check_user_status(request)['user_type']
                 if user_type == "customer":
                     
+                    global plot_bg
                     input_vendor_1= request.POST.get('vendor_name')
                     item_quantity = int(request.POST.get('input_quantity'))
                     time_left = request.POST.get('input_min_date')
@@ -508,8 +481,19 @@ class DMP:
                     input_vendor_names = request.POST.getlist('input_vendor_names[]')
                     input_incoterm_names = request.POST.getlist('input_incoterm_names[]')
                     proposed_prices = request.POST.getlist('proposed_prices[]')
-                    
-                    result = DMP.result_data_app.copy()
+                    for i in range(0, len(proposed_prices)):
+                        proposed_prices[i] = float(proposed_prices[i])
+                        
+
+                    with Session(engine) as session:
+                        input_token = request.POST.get('input_token')
+                        user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
+                        result_data_app_json = json.loads(user_session.result_data_app)
+                        result_data_app_df = pd.json_normalize(result_data_app_json)
+                        result_data_app_df['PO Item Creation Date']= pd.DatetimeIndex(result_data_app_df['PO Item Creation Date'])
+                        
+                        
+                    result = result_data_app_df.copy()
                     result = result[(result['PO Item Creation Date'] >= time_left) & (result['PO Item Creation Date'] <= time_right)]
                     
                     if input_app_unit_of_measure != 'ALL':
@@ -536,7 +520,7 @@ class DMP:
 
                     ab = result.copy()
                     min_ven_name = vendor_name
-                    min_ven_val = proposed_price
+                    min_ven_val = int(proposed_price)
                     min_incoterm = input_incoterm
 
                     if flag == 1:
@@ -588,24 +572,131 @@ class DMP:
 
                     delta, colors = find_colors_for_vlines(spend)
                     
+                    # OLD RECOMMENDATION
                     # -------------------------------------  Recommendation Start -------------------------------------
-                    new_flag = 0
-                    if len(vendor_names) > 1:
-                        new_flag =  1
-                    try:
-                        DMP.message_recomandation="Your recommendation succesfully send."
-                        DMP.message_recomandation = recommendation_alg(proposed_price,proposed_prices, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
-                    except Exception as e:
-                        my_traceback = traceback.format_exc()
-                        logging.error(my_traceback)
+
+                    prospoed_price_rec = proposed_price
+                    lowest_purchase_price_rec = min_price
+                    last_purchase_price_rec = last_price
+                    average_purchase_price_rec = avg_price
+
+                    savings = round((last_purchase_price_rec - prospoed_price_rec)*item_quantity, 2)
+
+                    print('\n\n\n')
+                    print("lowest_purchase_price_rec: ", lowest_purchase_price_rec )
+                    print("prospoed_price_rec: " , prospoed_price_rec)
+                    print('\n\n\n')
+                    
+                    message_recomandation=""
+                    if prospoed_price_rec < lowest_purchase_price_rec:
+                        print('1111111111111111111111111111111111111111111111111111111111111111111111')
+                        message_recomandation='Price is lower than the lowest purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
+
+                    elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
+                        print('22222222222222222222222222222222222222222222222222222222222222222222222')
+                        message_recomandation='Price is lower than last and average purchase price, hence recommended to accept. Savings for the next purchase batch is $' + str(savings)
                         
-                        print("redommendation excemption: ",my_traceback)
-                    # -------------------------------------  Recommendation End -------------------------------------
+
+                    elif prospoed_price_rec < last_purchase_price_rec and prospoed_price_rec > average_purchase_price_rec:
+                        lower_percentage = round((last_purchase_price_rec - prospoed_price_rec) / last_purchase_price_rec , 2) * 100
+                        higher_percentage = round((prospoed_price_rec - average_purchase_price_rec) / average_purchase_price_rec, 2) * 1000
+                        if lower_percentage > higher_percentage:
+                            print('33333333333333333333333333333333333333333333333333333333333333333333')
+                            message_recomandation="Price is lower than last purchase " +  str(round(lower_percentage))  + "% and higher than average purchase price " +  str(round(higher_percentage))  + "%, hence recommended to accept. Savings for the next purchase batch is $" + str(savings)
+                        
+                    elif prospoed_price_rec > last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
+                        higher_percentage = round((prospoed_price_rec - last_purchase_price_rec) / last_purchase_price_rec , 2) * 100
+                        lower_percentage = round((average_purchase_price_rec - prospoed_price_rec) / average_purchase_price_rec, 2) * 100
+                        if lower_percentage > higher_percentage:
+                            print('4444444444444444444444444444444444444444444444444444444444444444444444444444444444444444')
+                            message_recomandation='Price is lower than average purchase ' +  str(round(higher_percentage))   + ' and higher than last purchase price ' +  str(round(lower_percentage))  + '%, hence recommended to accept. Savings for the next purchase batch is $' +  + str(savings)
+                    else:
+                        message_recomandation = ""
+                        
+                        print()
+                    proposed_price_rec = proposed_price
+                    lowest_purchase_price_rec = min_price
+                    last_purchase_price_rec = last_price
+                    average_purchase_price_rec = avg_price
+                    flag_1 = 0
+                    message_negotiation=""
+                    if proposed_price_rec > last_purchase_price_rec and proposed_price_rec > average_purchase_price_rec:
+                        x = round(((proposed_price_rec - last_purchase_price_rec) / last_purchase_price_rec)*100, 2)
+                        y = round(((proposed_price_rec - average_purchase_price_rec) / average_purchase_price_rec)*100, 2)
+                        message_negotiation = '<p> Dear Supplier <b>' +input_vendor_1+ '</b>, your <i>proposed</i> price is higher than <i>last</i> and <i>average</i> purchase price respectively <b>' + str(round(x)) + '%</b> and <b>'+ str(round(y)) +'%</b>, hence company requests you to provide a discount</p>' 
+                        flag_1=1
+                    
+                    elif proposed_price_rec < last_purchase_price_rec and proposed_price_rec > average_purchase_price_rec:
+                        
+                        lower_percentage = ((last_purchase_price_rec - proposed_price_rec) / last_purchase_price_rec) * 100
+                        higher_percentage = ((proposed_price_rec - average_purchase_price_rec) / average_purchase_price_rec) * 100
+                        if higher_percentage > lower_percentage:
+                            x = round(higher_percentage)
+                            message_negotiation = "<p> Dear Supplier <b>"+input_vendor_1+ "</b>, your <i>proposed</i> price is higher than <i>average</i> purchase price <b>" + str(x) + "%</b> , hence company requests you to provide a discount<p/>"
+                            flag_1=1
+                            message_recomandation = "Negotiation Message: Dear Supplier "+input_vendor_1+ ", your proposed price is higher than averag purchase price " + str(x) + "%, hence company requests you to provide a discount"
+                    
+                    elif prospoed_price_rec > last_purchase_price_rec and prospoed_price_rec < average_purchase_price_rec:
+                        higher_percentage = ((prospoed_price_rec - last_purchase_price_rec) / last_purchase_price_rec ) * 100
+                        lower_percentage = ((average_purchase_price_rec - prospoed_price_rec) / average_purchase_price_rec) * 100
+                        if higher_percentage > lower_percentage:
+                            x = round(higher_percentage)
+                            message_negotiation = '<p> Dear Supplier <b>'+input_vendor_1+ '</b>, your <i>proposed</i> price is higher than <i>last</i> purchase <b>' + str(x) + '</b>, hence company requests you to provide a discount</p>' 
+                            flag_1=1
+
+                    if flag_1==1:
+
+                        html_message = message_negotiation #'<p>Dear supplier <b>' + input_vendor_1 + '</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials.html" target="_blank">Link for materials that has risen in price</a></h4>'            
+                    
+                    
+                        try:
+                            full_name = 'DMP BESTRACK'
+                            email = 'dmp.bestrack@gmail.com'
+                            message = html_message
+                            time='time'
+
+                            #send_mail
+                            send_mail(
+                        "From: "+ full_name, #subject
+                        "User Email: "+email+"\n Request for discount: "+html_message,    #message
+                        email, #from email
+                        ["hebibliferid20@gmail.com", "cavidan5889@gmail.com"],     html_message=html_message)
+                
+                        except Exception as e:
+                            print("mail sending error: ", e)
+                
+                    if flag == 1:
+                        y_ = ['$' + str(int(avg_price)) + ' ', ' $' + str(int(min_price)) + ' ', '  $' + str(int(last_price)) + ' ',  '   $' + str(int(min_ven_val)) + ' ',         '    $' + str(int(proposed_price)) + ' ']
+                        y_2 = ['Average', 'Lowest', 'Last', 'Proposed Lowest', 'Proposed']
+                        aa = ['Average ', 'Lowest', 'Last', 'Proposed Lowest', 'Proposed  (' + vendor_name + ')']
+
+                    else:
+                        y_ = ['$' + str(int(avg_price)) + ' ', ' $' + str(int(min_price)) + ' ', '  $' + str(int(last_price)) + ' ', '   $' + str(int(proposed_price)) + ' ']
+                        y_2 = ['Average', 'Lowest', 'Last', 'Proposed']
+                        aa = ['Average ', 'Lowest', 'Last', 'Proposed  (' + vendor_name + ')']
 
 
-                    # # -------------------------------------  Negotiation Start ------------------------------------- 
-                    negotiation_alg(proposed_price, min_price, last_price, avg_price, input_vendor_1)
-                    # -------------------------------------  Negotiation End ------------------------------------- 
+
+                    # -------------------------------------  Recommendation e -------------------------------------
+                    
+                    # # -------------------------------------  Recommendation Start -------------------------------------
+                    # new_flag = 0
+                    # if len(vendor_names) > 1:
+                    #     new_flag =  1
+                    # try:
+                    #     message_recomandation ="Your recommendation succesfully send."
+                    #     message_recomandation = recommendation_alg(proposed_price,proposed_prices, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
+                    # except Exception as e:
+                    #     my_traceback = traceback.format_exc()
+                    #     logging.error(my_traceback)
+                        
+                    #     print("redommendation excemption: ",my_traceback)
+                    # # -------------------------------------  Recommendation End -------------------------------------
+
+
+                    # # # -------------------------------------  Negotiation Start ------------------------------------- 
+                    # negotiation_alg(proposed_price, min_price, last_price, avg_price, input_vendor_1)
+                    # # -------------------------------------  Negotiation End ------------------------------------- 
 
 
                     if flag == 1:
@@ -623,12 +714,13 @@ class DMP:
                     fig = px.bar(temp_df, x='spend', y= 'y_', color = 'color', hover_data = ['Vendor', 'Date', 'Incoterm'], orientation = 'h', height = 400,
                                 color_discrete_map={'Proposed': 'rgb(144, 238, 144)', 'Lowest': '#add8e6', 'Last': '#fbc02d',  'Average': '#FF7F7F', 'Proposed Lowest': 'rgb(120, 200, 67)', },)
 
-                    fig = update_layout_fig_4(fig, spend, delta, y_, y_2, colors, DMP.plot_bg)
+                    fig = update_layout_fig_4(fig, spend, delta, y_, y_2, colors, plot_bg)
 
-                    div_4 = opy.plot(fig, auto_open=False, output_type='div')     
+                    div_4 = opy.plot(fig, auto_open=False, output_type='div') 
+                    print("message_recomandation:   ",message_recomandation)    
                     response = JsonResponse({
                         'plot_div_4': div_4,
-                        'message': DMP.message_recomandation
+                        'message': message_recomandation
                     })               
                         
                     add_get_params(response)
@@ -666,13 +758,14 @@ class DMP:
             user_type="not_user"
             user_type = check_user_status(request)['user_type']
             if user_type == "customer":
-                    
+                global plot_bg
+                user_id = request.POST.get('user_id')
                 input_plot_type = request.POST.get('input_plot_type')
                 input_vendor_1= request.POST.get('vendor_name')
                 time_left= request.POST.get('input_min_date')
                 time_right= request.POST.get('input_max_date')
-                df=pd.DataFrame(DMP.all_dataframe)
-            
+                df = pd.read_csv(str(BASE_DIR) + "/static/all_dataframe_" + user_id + ".csv",)
+                
                 #! stage 5  
                 vendor_name=input_vendor_1
                 
@@ -685,11 +778,7 @@ class DMP:
                     
                     # get the data that belong to user. 
                     categories_in_result = user_session.categories_in_result
-                    try:
-                        result_data_app = DMP.result_data_app
-                        # print("result_data_app: in visual 5 7: ", result_data_app)
-                    except Exception as e:
-                        print("result_data_app exception: ", e)
+
 
                 category_name = categories_in_result[0]
                 if input_plot_type == "vendor":
@@ -736,7 +825,7 @@ class DMP:
                             fig.add_trace(go.Scatter(x=list_of_dates, y=list_of_usd_prices, mode='lines+markers+text', textposition='top center', name=name, marker_size=5, visible='legendonly', line=dict(color=px.colors.qualitative.Bold[i]),))
                         i += 1
                 
-                    fig = update_layout_fig_5_7(fig, DMP.plot_bg)
+                    fig = update_layout_fig_5_7(fig, plot_bg)
 
                     div_5 = opy.plot(fig, auto_open=False, output_type='div')
 
@@ -782,13 +871,16 @@ class DMP:
             
             user_type = check_user_status(request)['user_type']
             if user_type == "customer":
+                user_id = request.POST.get('user_id')
+                global plot_bg
                 vendor_name = request.POST.get('vendor_name')
                 input_min_date = request.POST.get('input_min_date')
                 input_max_date = request.POST.get('input_max_date')
                 
                 # function download dataframes
                 
-                df = DMP.df_org
+                df = pd.read_csv(str(BASE_DIR) + "/static/df_org_" + user_id + ".csv")
+                
                 flag = 1
                 vendor_names_all_dataframe = df['Vendor Name'].str.lower().unique().tolist()
                 if vendor_name not in vendor_names_all_dataframe:  
@@ -814,7 +906,7 @@ class DMP:
                 a = a[(a['PO Item Creation Date'] >= input_min_date) & (a['PO Item Creation Date'] <= input_max_date)]
                 
                 total_spend = a['PO Item Value (GC)'].sum() / 1000000
-                DMP.total_spend = str(round(total_spend, 2)) + 'M'
+                total_spend = str(round(total_spend, 2)) + 'M'
 
                 b = pd.DataFrame(a.groupby(by=['Product Category'])['PO Item Value (GC)'].sum())
                 b.sort_values(by=['PO Item Value (GC)'], ascending=False, inplace=True)
@@ -859,14 +951,14 @@ class DMP:
                 fig2.update_traces(textposition='top center')
                 fig.add_trace(fig2.data[0])
 
-                fig = update_layout_fig_6(fig, DMP.plot_bg)
+                fig = update_layout_fig_6(fig, plot_bg)
                 fig.update(layout_coloraxis_showscale=False)
 
                 div_6 = opy.plot(fig, auto_open=False, output_type='div')
                 
                 response = JsonResponse({            
                     'plot_div_6': div_6,
-                    'total_spend': DMP.total_spend
+                    'total_spend': total_spend
                         })
                 print("ajax_6_succcessfull")
                         

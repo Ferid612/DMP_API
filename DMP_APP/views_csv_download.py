@@ -17,8 +17,15 @@ def download_csv(request):
     
     if user_type == "customer":
         
-        #* get material searching result data  
-        df=DMP.result_data_all
+        #* get material searching result data 
+        
+        with Session(engine) as session:
+            input_token = request.POST.get('input_token')
+            user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
+            result_data_all_json = json.loads(user_session.result_data_all)
+            result_data_all = pd.json_normalize(result_data_all_json)
+      
+        df = result_data_all
         try:
             df.drop('level_0', axis=1, inplace=True)
         except Exception as e:

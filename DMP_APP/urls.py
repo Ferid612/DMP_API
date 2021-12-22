@@ -9,8 +9,12 @@ from . import views_csv_download
 urlpatterns = [
     path('upload_file_historical/',DMP.upload_file_historical),
     path('check_file_historical/',DMP.check_file_historical),
+    path('check_token_time_call/',custom_logic.check_token_time_call),
     path('check_user_status/',custom_logic.check_user_status),
+    path('contact_us/',custom_logic.contact_us),
+    
     path('upload_sql_table/',custom_logic.upload_sql_table),
+    
     
     
     
@@ -30,7 +34,6 @@ urlpatterns = [
     path('visual_ajax_6/',DMP.visual_ajax_6),
 
 
-    path('save_app_to_app_in_search/',DMP.save_app_to_app_in_search),
 
     
     path('login/', custom_logic.login),
