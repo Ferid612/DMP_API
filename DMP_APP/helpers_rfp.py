@@ -266,13 +266,18 @@ def plot_1_4_pb(fig, result_3, list_of_idxs, today, current_date):
     i=0
     for name, group in groups:
         group.loc[group['PO Item Creation Date'].idxmax()]
-        material_id = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.'].tolist()[0]
-        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].tolist()[0]
+        
+        grup_loc = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.']
+        # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ grup_loc: ", grup_loc)
+        # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ grup_loc type: ", type(grup_loc))
+        
+        material_id =group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.']
+        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date']
         y1 = pd.Timestamp(y1)
         ts1 = y1
         ts2 = today
-        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price'].tolist()[0]
-        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates'].tolist()[0]
+        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price']
+        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates']
         x = (x1 + x2)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_x'] = ts1+(ts2-ts1)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_y'] = (x1 + x2)/2    
@@ -497,13 +502,13 @@ def plot_2_4_pb(fig, result_3, sorted_list, today, current_date):
     i=0
     for name, group in groups:
         group.loc[group['PO Item Creation Date'].idxmax()]
-        material_id = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.'].tolist()[0]
-        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].tolist()[0]
+        material_id = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.']
+        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date']
         y1 = pd.Timestamp(y1)
         ts1 = y1
         ts2 = today
-        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price'].tolist()[0]
-        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates'].tolist()[0]
+        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price']
+        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates']
         x = (x1 + x2)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_x'] = ts1+(ts2-ts1)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_y'] = (x1 + x2)/2
@@ -689,13 +694,13 @@ def plot_3_4_pb(fig, result_3, sorted_list, today, current_date):
     i=0
     for name, group in groups:
         group.loc[group['PO Item Creation Date'].idxmax()]
-        material_id = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.'].tolist()[0]
-        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].tolist()[0]
+        material_id = group.loc[group['PO Item Creation Date'].idxmax()]['Material/Service No.']
+        y1 = group.loc[group['PO Item Creation Date'].idxmax()]['PO Item Creation Date']
         y1 = pd.Timestamp(y1)
         ts1 = y1
         ts2 = today
-        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price'].tolist()[0]
-        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates'].tolist()[0]
+        x1 = group.loc[group['PO Item Creation Date'].idxmax()]['Unit Price']
+        x2 = group.loc[group['PO Item Creation Date'].idxmax()]['2021 rates']
         x = (x1 + x2)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_x'] = ts1+(ts2-ts1)/2
         result_3.loc[result_3['Material/Service No.'] == material_id, 'mid_y'] = (x1 + x2)/2

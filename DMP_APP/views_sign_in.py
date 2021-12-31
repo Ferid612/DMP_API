@@ -5,7 +5,7 @@ import pandas as pd
 import json
 from django.core.mail import send_mail
 from .helpers import *
-from .custom_logic import *
+from .custom_logic import add_get_params
 
 
 @csrf_exempt

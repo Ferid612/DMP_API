@@ -1,6 +1,6 @@
 from django.urls import path
-from .views_visual_1 import *
-from .views_normalise import *
+from .views_visual_1 import DMP
+from .views_normalise import DMP_normalise
 from . import views_sign_in
 from . import custom_logic
 

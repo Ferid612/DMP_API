@@ -45,24 +45,27 @@ def check_description(desc, df, threshold, path, list_of_sources):
 from .worker import *
 import numpy as np
 import pandas as pd
-import json
 import time
-from .custom_logic import *
-import logging 
-# from .helpers import *
 import os.path
-
+from pathlib import Path
 
 
 
 import warnings
 warnings.filterwarnings('ignore')
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    ]
+
+
 
 
 
 try:
     df = pd.DataFrame()
-    uploaded_file_path = str(BASE_DIR) + '/static/df_all_regions_uploaded.csv'
+    uploaded_file_path = str(BASE_DIR) + "/static/uploaded_historical_data_" + str(2) + ".csv"
     if os.path.isfile(uploaded_file_path)  : 
         
         df = pd.read_csv(uploaded_file_path, parse_dates=['PO Item Creation Date'], dtype="unicode")
@@ -94,7 +97,6 @@ except Exception as e:
 
     df = pd.DataFrame()
     print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
-    logging.warning(e)
 
    
 def searching_algorithm(item_number, desc_short_in, part_number, manufacture_name, df=df):
@@ -188,7 +190,7 @@ def searching_algorithm(item_number, desc_short_in, part_number, manufacture_nam
         
     toc = time.time()
 
-    print('Total running time from searching algorithm: ', toc-tic)
+    # print('Total running time from searching algorithm: ', toc-tic)
 
     app['base_index'] = app.index
     return app

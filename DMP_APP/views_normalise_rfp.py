@@ -7,9 +7,16 @@ class DMP_RFP_normalise(DMP_RFP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
                 if user_type == 'customer':
-                    a2a_conv=DMP_RFP.a2a_conv
+                    
+
+
+                    a2a_conv = pd.read_csv(str(BASE_DIR) + '/static/a2a_conv_' + str(user_id) + '.csv', error_bad_lines=False)
+
+
                     all_headers=DMP_RFP.all_headers
 
                     test_df = pd.DataFrame(a2a_conv)
@@ -18,12 +25,12 @@ class DMP_RFP_normalise(DMP_RFP):
                     test_df = test_df[test_df['Unit Price'] != test_df['Converted Price']]
                     
                     json_records_all=test_df.to_json(orient='records')
-                    DMP_RFP.app_selected_all_json=json.loads(json_records_all)
+                    app_selected_all_json = json.loads(json_records_all)
                     
                     if request.method =='POST':  
                             response = JsonResponse({
                                 
-                                        'result_app_to_app':  DMP_RFP.app_selected_all_json,
+                                        'result_app_to_app':  app_selected_all_json,
                                         'app_selected_indexes':  test_df.index.tolist(),
                                         'all_headers': all_headers,
                                         'user_input_desc': ['user_input_desc','desc_input_user','input_user_desc'],
@@ -65,7 +72,10 @@ class DMP_RFP_normalise(DMP_RFP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
 
                     approve_list = request.POST.getlist('approve_list[]')
@@ -73,13 +83,17 @@ class DMP_RFP_normalise(DMP_RFP):
         
                     print('approve_listttttttttttttt: ',approve_list)
                     #! bug in here
-                    DMP_RFP.app_to_app_rfp_after_search=DMP_RFP.app_to_app_rfp_after_search_2.copy()
+            
+                    app_to_app_rfp_after_search= pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_2_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    
+                    
                     i=0
                     for index in approve_list:
-                        DMP_RFP.app_to_app_rfp_after_search.loc[ DMP_RFP.app_to_app_rfp_after_search.index == int(index), 'Unit Price'] =  DMP_RFP.app_to_app_rfp_after_search[ DMP_RFP.app_to_app_rfp_after_search.index == int(index)]['Converted Price']
+                        app_to_app_rfp_after_search.loc[ app_to_app_rfp_after_search.index == int(index), 'Unit Price'] =  app_to_app_rfp_after_search[ app_to_app_rfp_after_search.index == int(index)]['Converted Price']
                         i += 1
                     
-                    print('iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii: ', i)
+                    app_to_app_rfp_after_search.to_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv", index = False)
+
 
                     #!bug finished
 
@@ -115,71 +129,20 @@ class DMP_RFP_normalise(DMP_RFP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
-                #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                 #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                            
-                    rfp_name= request.POST.get('rfp_name')
-                    vendor_name= request.POST.get('vendor_name')
-                    currency= request.POST.get('currency')
-                    region_name= request.POST.get('region_name')
 
+                    app_to_app_rfp_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
+                    app_to_app_rfp_after_search_2 = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_2_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
-                    DMP_RFP.rfp_name=rfp_name
-                    DMP_RFP.rfp_vendor_name=vendor_name
-                    DMP_RFP.rfp_currency_name=currency
-                    DMP_RFP.rfp_region_name=region_name
-
+                    app_to_app_rfp_after_search.loc[app_to_app_rfp_after_search['UoM_label'] != -1, 'Unit Price'] = app_to_app_rfp_after_search_2[app_to_app_rfp_after_search_2['UoM_label'] != -1]['Converted Price']           
                 
-                    DMP_RFP.app_to_app_rfp_after_search.loc[DMP_RFP.app_to_app_rfp_after_search['UoM_label'] != -1, 'Unit Price'] = DMP_RFP.app_to_app_rfp_after_search_2[DMP_RFP.app_to_app_rfp_after_search_2['UoM_label'] != -1]['Converted Price']           
-                
-                
-                    response = JsonResponse({
-                                'result_data_all':  'all',
-                            })
-                    add_get_params(response)
-                    return response
-                else:
-                    response = JsonResponse({'Answer': "You have have not access to this query.", })
-                    response.status_code=501
-                    add_get_params(response)
-                    return response
-            except Exception as e:
-                my_traceback = traceback.format_exc()
-                logging.error(my_traceback)
-                response = JsonResponse({'error_text':str(e),
-                                         'error_text_2':my_traceback
-                                         })
-                response.status_code = 505
-                
-                add_get_params(response)
-                return response 
-        else:
-            response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
-            add_get_params(response)
-            return response
-
-    @csrf_exempt
-    def save_rfp_name(request):
-        # Build the POST parameters
-        if request.method == 'POST':
-            try:    
-                #*cheking user status
-                user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':
-                    rfp_name= request.POST.get('rfp_name')
-                    vendor_name= request.POST.get('vendor_name')
-                    currency= request.POST.get('currency')
-                    region_name= request.POST.get('region_name')
-
-
-
-                    DMP_RFP.rfp_name=rfp_name
-                    DMP_RFP.rfp_vendor_name=vendor_name
-                    DMP_RFP.rfp_currency_name=currency
-                    DMP_RFP.rfp_region_name=region_name
-
+                    app_to_app_rfp_after_search.to_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv", index = False)
 
                     response = JsonResponse({
                                 'result_data_all':  'all',
@@ -217,10 +180,16 @@ class DMP_RFP_normalise(DMP_RFP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
-                #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                 #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                    DMP_RFP.app_to_app_rfp_after_search==DMP_RFP.app_to_app_rfp_after_search_2
+                    app_to_app_rfp_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_2_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    app_to_app_rfp_after_search.to_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv", index = False)
+
 
                     response = JsonResponse({
                                 'result_data_all':  'all',

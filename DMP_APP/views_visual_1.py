@@ -1,25 +1,25 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import numpy as np
-import math
 import json
 import pandas as pd
 from .views_search_1 import main_searching_algoritm
-from .custom_logic import *
 from .helpers import *
-from datetime import date,datetime
+from datetime import date
 import plotly.graph_objects as go
 import plotly.express as px
 from django.core.mail import send_mail
-import os
 import plotly.offline as opy
 from .helpers_2 import *
 from DMP_API.settings import engine
-from sqlalchemy.orm import sessionmaker, Session
-from .models import DMP_USERS
+from sqlalchemy.orm import  Session
+
 import traceback
 import logging
-
+from .models import USER_SESSION_WITH_DATA
+from .custom_logic import check_user_status, add_get_params
+from fuzzywuzzy import fuzz
+from DMP_API.settings import engine, BASE_DIR
 plot_bg='rgba(255, 255,255, 0.8)'
 
 class DMP:
@@ -44,8 +44,9 @@ class DMP:
                 if user_type == 'customer':
                     user_id = request.POST.get('user_id')                
                     df = upload_file_helpers(request)
+                    
                    
-                    df.to_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv", index = False)
+                    df.to_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv", index = False)
                     response = JsonResponse({'answerr': "Success", })
                 
                     add_get_params(response)
@@ -77,16 +78,18 @@ class DMP:
         # Build the POST parameters
         if request.method == 'POST':
             
-            user_type = check_user_status(request)['user_type']  
-            
+            #*cheking user status
+            user_response = check_user_status(request)
+            user_type = user_response['user_type']
+            user_id = user_response['user_id']
+
             if user_type != 'not_user':
                 check_data=False
-                user_id = request.POST.get('user_id')
                 try:    
              
                     #* check uploaded historical data
                      
-                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv",)
+                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv")
                     
                     if str(type(df)).split() != "<class 'list'>".split():
                         print("Uploaded historical data df type: ", type(df))
@@ -125,7 +128,11 @@ class DMP:
     def searching(request):
         if request.method =='POST':
             try: 
-                user_type = check_user_status(request)['user_type']    
+                 #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type != 'not_user':
                     #* get all input data in inputs
                     input_region_name = request.POST.get('region')  
@@ -136,23 +143,22 @@ class DMP:
                     input_vendor_names = request.POST.getlist('vendor_names[]')
                     input_proposed_prices= request.POST.getlist('proposed_prices[]')
                     input_currencies = request.POST.getlist('currencies[]')     
-                    user_id = request.POST.get('user_id')
 
 
                     #FIXME: correct dataframe for different user 
-                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + user_id + ".csv",)
+                    df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv",)
                     
                     processed_df = preprocess_search_data(df, input_region_name)
 
                     df_org = processed_df.copy()
-                    df_org.to_csv(str(BASE_DIR) + "/static/df_org_" + user_id + ".csv", index = False)
+                    df_org.to_csv(str(BASE_DIR) + "/static/df_org_" + str(user_id) + ".csv", index = False)
                     
                     
                     all_dataframes_from_searching = main_searching_algoritm(input_material_id, input_description, input_manufacturer_part_number, input_manufacturer_name, processed_df)
                     
                     #FIXME: correct dataframe for different user 
                     all_dataframe = pd.DataFrame(all_dataframes_from_searching['all_dataframe'])
-                    all_dataframe.to_csv(str(BASE_DIR) + "/static/all_dataframe_" + user_id + ".csv", index = False)
+                    all_dataframe.to_csv(str(BASE_DIR) + "/static/all_dataframe_" + str(user_id) + ".csv", index = False)
                     
                     # df_org.to_csv("cheking_size_df_org.csv", index = False)
                    
@@ -220,22 +226,20 @@ class DMP:
                         
 
                         with Session(engine) as session:
-                            input_token = request.POST.get('input_token')
 
-                            user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
-                            user_session.categories_in_result= categories_in_result
-                            user_session.result_data_all = result_data_all.to_json(orient='records')
-                            user_session.result_data_app = result_data_app.to_json(orient='records')
-                            user_session.result_data_app_copy = result_data_app_copy.to_json(orient='records')
-
-                            user_session.item_numbers_in_result = item_numbers_in_result
-                            user_session.short_desc_in_result = short_desc_in_result
-                            user_session.new_manufacturer_name = new_manufacturer_name
-                            user_session.apple_to_apple_count = apple_to_apple_count
-                            user_session.result_count = result_count
-                            user_session.user_input_desc = user_input_desc
-                            user_session.all_headers = all_headers
-                            user_session.data_list = json.dumps(data_list)
+                            user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                            user_session_with_data.categories_in_result= categories_in_result
+                            user_session_with_data.result_data_all = result_data_all.to_json(orient='records')
+                            user_session_with_data.result_data_app = result_data_app.to_json(orient='records')
+                            user_session_with_data.result_data_app_copy = result_data_app_copy.to_json(orient='records')
+                            user_session_with_data.item_numbers_in_result = item_numbers_in_result
+                            user_session_with_data.short_desc_in_result = short_desc_in_result
+                            user_session_with_data.new_manufacturer_name = new_manufacturer_name
+                            user_session_with_data.apple_to_apple_count = apple_to_apple_count
+                            user_session_with_data.result_count = result_count
+                            user_session_with_data.user_input_desc = user_input_desc
+                            user_session_with_data.all_headers = all_headers
+                            user_session_with_data.data_list = json.dumps(data_list)
                             session.commit()
 
 
@@ -298,14 +302,14 @@ class DMP:
         # Build the POST parameters
             with Session(engine) as session:
                 input_token = request.POST.get('input_token')
-                user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
-                categories_in_result = user_session.categories_in_result
-                item_numbers_in_result = user_session.item_numbers_in_result
-                short_desc_in_result =user_session.short_desc_in_result
-                new_manufacturer_name = user_session.new_manufacturer_name
-                apple_to_apple_count = user_session.apple_to_apple_count
-                result_count = user_session.result_count
-                data_list = json.loads(user_session.data_list) 
+                user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_token == input_token).first()
+                categories_in_result = user_session_with_data.categories_in_result
+                item_numbers_in_result = user_session_with_data.item_numbers_in_result
+                short_desc_in_result =user_session_with_data.short_desc_in_result
+                new_manufacturer_name = user_session_with_data.new_manufacturer_name
+                apple_to_apple_count = user_session_with_data.apple_to_apple_count
+                result_count = user_session_with_data.result_count
+                data_list = json.loads(user_session_with_data.data_list) 
                 
             user_type = check_user_status(request)['user_type']  
             if user_type != 'not_user':
@@ -352,16 +356,18 @@ class DMP:
     def visual_ajax_1_2_3(request):
         if request.method =='POST':
             try:
-                # * cheking user status
-                user_type="not_user"
-                user_type = check_user_status(request)['user_type']
+                 #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == "customer":
                 
                     global plot_bg
                     with Session(engine) as session:
-                        input_token = request.POST.get('input_token')
-                        user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
-                        result_data_app_json = json.loads(user_session.result_data_app)
+                        
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        result_data_app_json = json.loads(user_session_with_data.result_data_app)
                         app_to_app = pd.json_normalize(result_data_app_json)
                                
                     input_app_unit_of_measure = request.POST.get('app_unit_of_measure')
@@ -468,8 +474,11 @@ class DMP:
         if request.method =='POST':
             try:
                 # * cheking user status
-                user_type="not_user"
-                user_type = check_user_status(request)['user_type']
+                 #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == "customer":
                     
                     global plot_bg
@@ -486,9 +495,9 @@ class DMP:
                         
 
                     with Session(engine) as session:
-                        input_token = request.POST.get('input_token')
-                        user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
-                        result_data_app_json = json.loads(user_session.result_data_app)
+
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        result_data_app_json = json.loads(user_session_with_data.result_data_app)
                         result_data_app_df = pd.json_normalize(result_data_app_json)
                         result_data_app_df['PO Item Creation Date']= pd.DatetimeIndex(result_data_app_df['PO Item Creation Date'])
                         
@@ -754,17 +763,18 @@ class DMP:
     @csrf_exempt
     def visual_ajax_5_7(request):
         if request.method =='POST':
-            # * cheking user status
-            user_type="not_user"
-            user_type = check_user_status(request)['user_type']
+            #*cheking user status
+            user_response = check_user_status(request)
+            user_type = user_response['user_type']
+            user_id = user_response['user_id']
+            
             if user_type == "customer":
                 global plot_bg
-                user_id = request.POST.get('user_id')
                 input_plot_type = request.POST.get('input_plot_type')
                 input_vendor_1= request.POST.get('vendor_name')
                 time_left= request.POST.get('input_min_date')
                 time_right= request.POST.get('input_max_date')
-                df = pd.read_csv(str(BASE_DIR) + "/static/all_dataframe_" + user_id + ".csv",)
+                df = pd.read_csv(str(BASE_DIR) + "/static/all_dataframe_" + str(user_id) + ".csv",)
                 
                 #! stage 5  
                 vendor_name=input_vendor_1
@@ -772,12 +782,12 @@ class DMP:
              
                 #get data from session  
                 with Session(engine) as session:
-                    input_token = request.POST.get('input_token')
+
                     # get user object with user token
-                    user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
+                    user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
                     
                     # get the data that belong to user. 
-                    categories_in_result = user_session.categories_in_result
+                    categories_in_result = user_session_with_data.categories_in_result
 
 
                 category_name = categories_in_result[0]
@@ -865,13 +875,14 @@ class DMP:
     @csrf_exempt    
     def visual_ajax_6(request):
         if request.method =='POST':
-            # * cheking user status
 
+            #*cheking user status
+            user_response = check_user_status(request)
+            user_type = user_response['user_type']
+            user_id = user_response['user_id']
             
-            
-            user_type = check_user_status(request)['user_type']
             if user_type == "customer":
-                user_id = request.POST.get('user_id')
+
                 global plot_bg
                 vendor_name = request.POST.get('vendor_name')
                 input_min_date = request.POST.get('input_min_date')
@@ -879,7 +890,7 @@ class DMP:
                 
                 # function download dataframes
                 
-                df = pd.read_csv(str(BASE_DIR) + "/static/df_org_" + user_id + ".csv")
+                df = pd.read_csv(str(BASE_DIR) + "/static/df_org_" + str(user_id) + ".csv")
                 
                 flag = 1
                 vendor_names_all_dataframe = df['Vendor Name'].str.lower().unique().tolist()

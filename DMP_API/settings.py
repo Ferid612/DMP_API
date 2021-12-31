@@ -172,51 +172,51 @@ STATICFILES_DIRS = [
 
 
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-        },
-    },
-    'handlers': {
-        'default': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename':  str(BASE_DIR) + "/static/debug.log",
-            'maxBytes': 1024*1024*5, # 5 MB
-            'backupCount': 5,
-            'formatter':'standard',
-        },  
-        'request_handler': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename': str(BASE_DIR) + "/static/request_handler.log",
-            'maxBytes': 1024*1024*5, # 5 MB
-            'backupCount': 5,
-            'formatter':'standard',
-        },
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "stream": sys.stdout,
-        },
-    },
-    'loggers': {
-        '': { 
-            'handlers': ['default','console'],
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        'django.request': {
-            'handlers': ['request_handler'],
-            'level': 'DEBUG',
-            'propagate': False
-        },
-    }
-}
-
+# LOGGING = {
+    # 'version': 1,
+    # 'disable_existing_loggers': True,
+    # 'formatters': {
+        # 'standard': {
+            # 'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        # },
+    # },
+    # 'handlers': {
+        # 'default': {
+            # 'level':'DEBUG',
+            # 'class':'logging.handlers.RotatingFileHandler',
+            # 'filename':  str(BASE_DIR) + "/static/debug.log",
+            # 'maxBytes': 1024*1024*5, # 5 MB
+            # 'backupCount': 5,
+            # 'formatter':'standard',
+        # },  
+        # 'request_handler': {
+            # 'level':'DEBUG',
+            # 'class':'logging.handlers.RotatingFileHandler',
+            # 'filename': str(BASE_DIR) + "/static/request_handler.log",
+            # 'maxBytes': 1024*1024*5, # 5 MB
+            # 'backupCount': 5,
+            # 'formatter':'standard',
+        # },
+        # "console": {
+            # "level": "DEBUG",
+            # "class": "logging.StreamHandler",
+            # "stream": sys.stdout,
+        # },
+    # },
+    # 'loggers': {
+        # '': { 
+            # 'handlers': ['default','console'],
+            # 'level': 'DEBUG',
+            # 'propagate': True
+        # },
+        # 'django.request': {
+            # 'handlers': ['request_handler'],
+            # 'level': 'DEBUG',
+            # 'propagate': False
+        # },
+    # }
+# }
+# 
 
 
 # OPENCENSUS = {

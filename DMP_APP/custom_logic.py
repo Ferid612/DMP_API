@@ -1,5 +1,5 @@
 from django.views.decorators.csrf import csrf_exempt
-from .models import DMP_USERS,USER_SESSION
+from .models import DMP_USERS,USER_SESSION, USER_SESSION_WITH_DATA
 from django.http import JsonResponse
 from DMP_API.settings import engine, BASE_DIR
 from sqlalchemy.orm import Session
@@ -13,6 +13,9 @@ import time
 import schedule
 from django.core.mail import send_mail
 import os
+print("i am working*****************************************************************4444")
+
+
 def check_token_time():
     print("Cheking user session time...")
 
@@ -25,24 +28,32 @@ def check_token_time():
             timeout -= 60
             user.timeout= timeout
             user_id = user.user_id
-            print("User session time: ", user_id)
-            print("User session time: ", timeout)
+            
+            print("user_id: " , user_id)
+            print("user_time: " , timeout)
+            
+            
             
             if timeout < 0:
-                new_token=secrets.token_hex(64)
-                user.categories_in_result=""
-                user.result_data_app=""
-                user.result_data_app_copy=""
+                user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id)
+                
+
+                
+                user_session_with_data.first().categories_in_result=""
+                user_session_with_data.first().result_data_app=""
+                user_session_with_data.first().result_data_app_copy=""
                 
                 try:
                     os.remove(str(BASE_DIR) + "/static/all_dataframe_" + str(user_id) + ".csv")
-                    os.remove(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv")
+                    # os.remove(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv")
                     os.remove(str(BASE_DIR) + "/static/df_org_" + str(user_id) + ".csv")
                 except Exception as e:
                     pass
+                               
                                 
+                new_token=secrets.token_hex(64)
                 user.user_token= new_token
-                
+                user_session_with_data.first().user_token= new_token
                 
                 
                 user.timeout= 1200
@@ -57,7 +68,7 @@ def check_token_time_call(request):
         global flag_for_job
         if flag_for_job == 1:
             print("i call check_token_time")
-            schedule.every(5).seconds.do(check_token_time)
+            schedule.every(60).seconds.do(check_token_time)
             flag_for_job = 2
             while True:
                 schedule.run_pending()
@@ -80,8 +91,6 @@ def check_token_time_call(request):
         add_get_params(response)
         return response 
 
-
-
 @csrf_exempt
 def contact_us(request):
     try:
@@ -89,49 +98,25 @@ def contact_us(request):
         email = request.POST.get('email')
         message = request.POST.get('message')
         phone = request.POST.get('phone')
-              
-        # full_name = 'DMP BESTRACK'
-        # email = 'dmp.bestrack@gmail.com'
-        # message = "html_message"
-        time='time'
-
-
         print("Contact: ", full_name)
         print("Contact: ", email)
         print("Contact: ", message)
         print("Contact: ", phone)
-        
-        
-   
-
-        #send_mail
         send_mail(
             "Contack-Us from: "+ full_name , #subject
-            
-            
             "User Email: "+'email'+" Request for discount: "+'message',    #message
-            
-            
             email, #from email
-            
-            
             ["hebibliferid20@gmail.com", "cavidan5889@gmail.com","dmp.bestrack@gmail.com", "prodigitrack.dmp@gmail.com"],  
-            
-            
             html_message=message)
-
-
     except Exception as e:
         print("mail sending error: ", e)
-
-
     response = JsonResponse({      
     'user_type':"user_type"
     })
-
     add_get_params(response)
     print("\033[92m Send mail SUCCESSFULLY" '\033[0m')
     return response
+
 
 @csrf_exempt
 def upload_sql_table(request):
@@ -142,7 +127,7 @@ def upload_sql_table(request):
             user_type=check_user_status(request)['user_type']  
             if user_type == 'customer' or user_type == 'supplier':
                 user_type = "not_user"
-                file_name = 'pricebook'
+                file_name = 'user_session_with_data_2'
                 
                 try:
                     input_user_name = request.POST.get('input_user_name')
@@ -154,7 +139,7 @@ def upload_sql_table(request):
                     # creat SQL TABLE With pandas dataframe
                     
                     with Session(engine) as session:
-                        df = pd.read_csv(str(BASE_DIR) + '/static/connection_supplier_customer.csv')
+                        df = pd.read_csv(str(BASE_DIR) + '/static/data-1640345600058.csv')
                         df.to_sql(file_name, engine, if_exists='replace', index=False)
 
 
@@ -174,7 +159,7 @@ def upload_sql_table(request):
                 try:            
                     with engine.connect() as con:
                         # query_1='ALTER TABLE '+file_name.lower()+ ' ALTER COLUMN '+file_name.lower() +'_ID SET NOT NULL;'            
-                        query_2='ALTER TABLE '+file_name.lower()+ ' ADD PRIMARY KEY (pricebook_id);'
+                        query_2='ALTER TABLE '+file_name.lower()+ ' ADD PRIMARY KEY (user_id);'
                         # con.execute(query_1)  
                         con.execute(query_2)
                 except Exception as e:
@@ -187,6 +172,8 @@ def upload_sql_table(request):
                 })
                 add_get_params(response)
                 response['user_type'] = user_type
+                
+                
                 print("\033[92m Uploaded to SQL DATABASE SUCCESSFULLY" '\033[0m')
                 return response
 
@@ -221,14 +208,7 @@ def check_user_status(request):
         
         print("\033[92m input_user_name: " , input_user_name)
         print("input_token: " , input_token, '\033[0m')
-        
-        
-        # keyss = "myencryptionkeyhere"
-        # cyper_user = Fernet(keyss)
-        
-        # print("\033[91m cipher_suite: " ,cyper_user)
-        
-        
+  
         with Session(engine) as session:
         
             sql_table= (
@@ -239,14 +219,7 @@ def check_user_status(request):
                 .filter(DMP_USERS.user_name==input_user_name)
                 .order_by(DMP_USERS.user_name))   
         
-   
-   
-            user=session.query(USER_SESSION)\
-            .select_from(USER_SESSION)\
-            .join(DMP_USERS, USER_SESSION.user_id==DMP_USERS.user_id)\
-            .filter(DMP_USERS.user_name==input_user_name)
-
-
+        
             sql_table = serializer(sql_table)
             
             user_token = sql_table[0]['user_token']
@@ -262,11 +235,9 @@ def check_user_status(request):
 
         with Session(engine) as session:
             user_session = session.query(USER_SESSION)
-
             for user in user_session:
-                
                 if str(user.user_id) == str(user_id):
-                    user.timeout= 1200
+                    user.timeout = 1200
                     
             session.commit()
    
@@ -280,6 +251,8 @@ def check_user_status(request):
         response.status_code = 505
         add_get_params(response)
         response['user_type'] = user_type
+        response['user_id'] = user_id
+        
         return response 
     
     if user_type != "not_user":
@@ -303,6 +276,7 @@ def check_user_status(request):
     
     add_get_params(response)
     response['user_type'] = user_type
+    response['user_id'] = user_id
     
     return response
             
@@ -358,6 +332,9 @@ def login(request):
                     filter(USER_SESSION.user_id == user_id).\
                     update({'user_token': new_token})
 
+                session.query(USER_SESSION_WITH_DATA).\
+                    filter(USER_SESSION_WITH_DATA.user_id == user_id).\
+                    update({'user_token': new_token})
                 session.commit()
            
            

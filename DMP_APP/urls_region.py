@@ -1,6 +1,6 @@
 from django.urls import path
-from .views_visual_region import *
-from .views_normalise_region import *
+from .views_visual_region import DMP_Region
+from .views_normalise_region import DMP_Region_normalise
 urlpatterns = [
 
   

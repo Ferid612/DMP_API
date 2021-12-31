@@ -11,18 +11,19 @@ def download_csv(request):
     which user see in the material_searching.html
     '''
     
-    # * cheking user status
-    user_type="not_user"
-    user_type = check_user_status(request)['user_type']
+    #*cheking user status
+    user_response = check_user_status(request)
+    user_type = user_response['user_type']
+    user_id = user_response['user_id']
     
     if user_type == "customer":
         
         #* get material searching result data 
         
         with Session(engine) as session:
-            input_token = request.POST.get('input_token')
-            user_session = session.query(USER_SESSION).filter(USER_SESSION.user_token==input_token).first()
-            result_data_all_json = json.loads(user_session.result_data_all)
+   
+            user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id==user_id).first()
+            result_data_all_json = json.loads(user_session_with_data.result_data_all)
             result_data_all = pd.json_normalize(result_data_all_json)
       
         df = result_data_all

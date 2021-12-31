@@ -22,7 +22,6 @@ import datetime
 import datetime as dt
 from .helpers import *
 from functools import reduce
-from .custom_logic import *
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -33,11 +32,15 @@ from DMP_APP import search_alg_parallel
 from .helpers_rfp import *
 from multiprocessing import Pool
 
-
+print("i am working*****************************************************************3333")
 
 
 import warnings
 warnings.filterwarnings('ignore')
+plot_bg='rgba(171, 248, 190, 0.8)'
+
+
+
 class DMP_RFP(DMP):
     
     all_headers=["PO No.","PO Item No.","Incoterms Name", "Material/Service No.","Vendor Name","PO Item Description","Manufacturer Name",
@@ -49,42 +52,9 @@ class DMP_RFP(DMP):
         response=JsonResponse({"Data":"data"})
         add_get_params(response)
         return response
+    
 
-    @csrf_exempt 
-    def upload_file_historical(request): 
-        # Build the POST parameters
-        if request.method == 'POST':
-            try:    
-                #*cheking user status
-                user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':
-                    
-                    df=upload_file_helpers(request)
-                    DMP_RFP.uploaded_historical_data = df
-                    response = JsonResponse({'answerr': "Success", })
-                    add_get_params(response)
-                    return response
-                else:
-                    response = JsonResponse({'Answer': "You have have not access to this query.", })
-                    response.status_code=501
-                    add_get_params(response)
-                    return response
-            except Exception as e:
-                my_traceback = traceback.format_exc()
-             
-                logging.error(my_traceback)
-                response = JsonResponse({'error_text':str(e),
-                                         'error_text_2':my_traceback
-                                         })
-                response.status_code = 505
-                
-                add_get_params(response)
-                return response 
-                            
-        else:
-            response = JsonResponse({'Answer': "Sorry this method running only POST method. Thanks from DRL", })
-            add_get_params(response)
-            return response
+  
 
     @csrf_exempt
     def search_rfp_new(request):
@@ -92,26 +62,27 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-
+                    
                     currency_content = get_curency_data()
-                    currency = str(DMP_RFP.rfp_currency_name)
+                    currency = request.POST.get('currency')
                     currency_ratio = currency_content['USD' + currency]
-                    rfp_region_name = str(DMP_RFP.rfp_region_name)    
-                    pb_df = DMP_RFP.uploaded_rfp_file
+                    pb_df = pd.read_csv(str(BASE_DIR) + "/static/uploaded_rfp_file_" + str(user_id) + ".csv",error_bad_lines=False)
 
                     #! Automatically change column names if needed
-                    DMP_RFP.new_pb_df = preprocess_pricebook_data(pb_df, currency_ratio)
-                    a = DMP_RFP.new_pb_df['BP Material / \nService Master No.'].tolist()
-                    b = DMP_RFP.new_pb_df['Supplier Description'].tolist()
-                    c = DMP_RFP.new_pb_df['Manufacturer Part Number'].tolist()
-                    d = DMP_RFP.new_pb_df['Manufacturer Name'].tolist()
+                    new_pb_df = preprocess_pricebook_data(pb_df, currency_ratio)
+                    a = new_pb_df['BP Material / \nService Master No.'].tolist()
+                    b = new_pb_df['Supplier Description'].tolist()
+                    c = new_pb_df['Manufacturer Part Number'].tolist()
+                    d = new_pb_df['Manufacturer Name'].tolist()
 
-
+                    new_pb_df.to_csv(str(BASE_DIR) + '/static/new_pb_df_'+ str(user_id)+'.csv', index = False)
                     tic = time.time()
                     print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
-                    DMP_RFP.uploaded_historical_data.to_csv(str(BASE_DIR) + '/static/df_all_regions_uploaded.csv', index=False)
                     reload(search_alg_parallel)
             
                     with Pool() as pool:
@@ -134,8 +105,7 @@ class DMP_RFP(DMP):
                     
                     with Pool() as pool:
                         a2a_conv = pd.concat(pool.starmap(parallel_uom, zip(material_id_list, identifier)))
-                    # a2a_conv = a2a.copy()
-                    # a2a_conv['Converted Price'] = a2a_conv['Unit Price']
+
 
                     display_converted_uom_rfp=True
                     if a2a_conv.shape[0] == a2a_conv[a2a_conv['Unit Price'] == a2a_conv['Converted Price']].shape[0] or a2a_conv.shape[0] == a2a_conv[a2a_conv['UoM_label'] == 1].shape[0]:
@@ -144,8 +114,10 @@ class DMP_RFP(DMP):
                     a2a_conv.reset_index(inplace=True)
                     a2a_conv['index'] = a2a_conv.index
 
-                    DMP_RFP.a2a_conv = a2a_conv 
-                    DMP_RFP.display_converted_uom_rfp = display_converted_uom_rfp 
+
+
+                    a2a_conv.to_csv(str(BASE_DIR) + '/static/a2a_conv_'+ str(user_id)+'.csv', index = False)
+
 
                     response=JsonResponse({"display_converted_uom_rfp":display_converted_uom_rfp})
                     add_get_params(response)
@@ -178,17 +150,19 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
+                
                 if user_type == 'customer':
+                    region_name = request.POST.get('region_name')
+                    # ! ****************** start Region searching ******************
+                    df_full = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
 
-                # ! ****************** start Region searching ******************
-                    df_full= pd.read_csv(str(BASE_DIR) + "/static/df_all_regions_uploaded.csv",error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
-
-                    DMP_RFP.df_full_region = df_full
                     a2a = pd.read_csv(str(BASE_DIR) + '/static/A2A_28_08_2021_Region.csv',error_bad_lines=False, dtype="unicode",parse_dates=['PO Item Creation Date'])
 
-                    DMP_RFP.a2a=a2a
-                    # DMP_RFP.list_of_regions_rfp = a2a['Region'].unique().tolist()
 
                     intersect = reduce(np.intersect1d, a2a.groupby('Region')['Material/Service No.'].apply(list))
                     result_df = a2a.loc[a2a['Material/Service No.'].isin(intersect), :].copy()
@@ -197,44 +171,71 @@ class DMP_RFP(DMP):
                     result_df['PO Item Value (GC)'] = result_df['PO Item Value (GC)'].astype('float')
                     
 
-                    DMP_RFP.result_df=result_df
-                    DMP_RFP.a2a=a2a
+                    result_df.to_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv", index = False)
+                    a2a.to_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv", index = False)
+                    
+
 
                     list_of_regions = result_df['Region'].value_counts().index.tolist()
                     list_of_regions = list_of_regions[::-1]
                     list_of_regions.remove('AGT')
                     list_of_regions.append('AGT')
 
-                    DMP_RFP.list_of_regions=list_of_regions
 
                 # ! ****************** end Region searching ******************
 
-                #************ RFP searching section start**********************#!****        
-                    DMP_RFP.df_full =  DMP_RFP.uploaded_historical_data[DMP_RFP.uploaded_historical_data['Region'] == DMP_RFP.rfp_region_name]        
-                    DMP_RFP.df_full = DMP_RFP.df_full[(DMP_RFP.df_full['PO Status Name'] != 'Deleted') & (DMP_RFP.df_full['PO Status Name'] != 'Held') & (DMP_RFP.df_full['PO Item Deletion Flag'] != 'X')]
-                    DMP_RFP.df_full['PO Item Description'] = DMP_RFP.df_full['PO Item Description'].replace(np.nan, ' ', regex=True)    
-                    DMP_RFP.df_full['Long Description'] = DMP_RFP.df_full['Long Description'].replace(np.nan, ' ', regex=True)
+                #************ RFP searching section start**********************#!****       
+                    uploaded_historical_data = pd.read_csv(str(BASE_DIR) + "/static/uploaded_historical_data_" + str(user_id) + ".csv")
+                     
+                    df_full =  uploaded_historical_data[uploaded_historical_data['Region'] == region_name]        
+                    df_full = df_full[(df_full['PO Status Name'] != 'Deleted') & (df_full['PO Status Name'] != 'Held') & (df_full['PO Item Deletion Flag'] != 'X')]
+                    df_full['PO Item Description'] = df_full['PO Item Description'].replace(np.nan, ' ', regex=True)    
+                    df_full['Long Description'] = df_full['Long Description'].replace(np.nan, ' ', regex=True)
 
-                    DMP_RFP.df_full['PO Item Creation Date'] = pd.DatetimeIndex(DMP_RFP.df_full['PO Item Creation Date'])
-                    DMP_RFP.min_date = DMP_RFP.df_full.loc[DMP_RFP.df_full['PO Item Creation Date'].idxmin()]['PO Item Creation Date'].strftime('%Y-%m-%d')
-                    DMP_RFP.max_date = DMP_RFP.df_full.loc[DMP_RFP.df_full['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].strftime('%Y-%m-%d')
-                    DMP_RFP.categories_rfp = DMP_RFP.a2a_conv['Product Category Description'].value_counts().index.tolist()
+                    df_full['PO Item Creation Date'] = pd.DatetimeIndex(df_full['PO Item Creation Date'])
+                    
+           
+                    df_full.to_csv(str(BASE_DIR) + "/static/df_full_" + str(user_id) + ".csv", index = False)
 
-                    app_to_app_rfp = DMP_RFP.a2a_conv.copy()
-                    app_to_app_rfp['PO Item Creation Date'] = pd.DatetimeIndex(app_to_app_rfp['PO Item Creation Date'])
+                    min_date = df_full.loc[df_full['PO Item Creation Date'].idxmin()]['PO Item Creation Date'].strftime('%Y-%m-%d')
+                    max_date = df_full.loc[df_full['PO Item Creation Date'].idxmax()]['PO Item Creation Date'].strftime('%Y-%m-%d')
+                  
+                 
+                        
+                    a2a_conv = pd.read_csv(str(BASE_DIR) + '/static/a2a_conv_' + str(user_id) + '.csv', error_bad_lines=False)
+                 
+                 
+                   
+                    categories_rfp = a2a_conv['Product Category Description'].value_counts().index.tolist()
+       
+                    a2a_conv['PO Item Creation Date'] = pd.DatetimeIndex(a2a_conv['PO Item Creation Date'])
+                        
+                        
+                    app_to_app_rfp = a2a_conv.copy()
+                    
+                    # app_to_app_rfp['PO Item Creation Date'] = pd.DatetimeIndex(app_to_app_rfp['PO Item Creation Date'])
                     app_to_app_rfp['Material/Service No.'] = app_to_app_rfp['Material/Service No.'].astype('str')
 
                     #!111111
-                    DMP_RFP.app_to_app_rfp_after_search = app_to_app_rfp.copy()
-                    DMP_RFP.app_to_app_rfp_after_search_2 = app_to_app_rfp.copy()
-
-                    pb_df = DMP_RFP.new_pb_df
+                    app_to_app_rfp.to_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv", index = False)
+                    app_to_app_rfp.to_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_2_" + str(user_id) + ".csv", index = False)
                     
+
+                    pb_df = pd.read_csv(str(BASE_DIR) + "/static/new_pb_df_" + str(user_id) + ".csv",error_bad_lines=False)
+                    pb_df['PO Item Creation Date'] = pd.DatetimeIndex(pb_df['PO Item Creation Date'])
                     #!222222
-                    DMP_RFP.pb_df_after_search = pb_df.copy()
+                    
+                    pb_df_after_search = pb_df.copy()
+                    pb_df_after_search.to_csv(str(BASE_DIR) + "/static/pb_df_after_search_" + str(user_id) + ".csv", index = False)
+
+                    
                     idxs = app_to_app_rfp['Material/Service No.'].value_counts().index.tolist()
 
                     pb_df['BP Material / \nService Master No.'] =  pb_df['BP Material / \nService Master No.'].astype('str')
+                    pb_df['2021 rates'] = pb_df['2021 rates'].astype('float')
+                    pb_df['2020 rates'] = pb_df['2020 rates'].astype('float')
+                    
+                    
                     app_rfp_df = pb_df[pb_df['BP Material / \nService Master No.'].isin(idxs)].copy()
                     
                     #!333333
@@ -243,27 +244,34 @@ class DMP_RFP(DMP):
                     app_rfp_df = normalize_pricebook(app_rfp_df)
 
                     # ADD PB Transactions to Basket 2
-                    DMP_RFP.app_rfp_df_after_search = app_rfp_df.copy()
+                    app_rfp_df_after_search = app_rfp_df.copy()
+                    app_rfp_df_after_search.to_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv", index = False)
+
                     # !!!!!!!!!!!!!!!!!!!!!!!!!!!! URGENT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                     new_a2a = pd.merge(app_to_app_rfp, app_rfp_df[['BP Material / \nService Master No.', '2021 rates', '2020 rates']], 
                                     how='left', left_on='Material/Service No.', right_on='BP Material / \nService Master No.')
 
 
                     new_a2a['2021 rates'] = new_a2a['2021 rates'].astype('float')
+                    # new_a2a['Item Total Spend'] = new_a2a['Item Total Spend'].astype('float')
+                    new_a2a['PO Item Value (GC)'] = new_a2a['PO Item Value (GC)'].astype('float')
                     weight_df = pd.DataFrame(new_a2a.groupby('Material/Service No.')['PO Item Value (GC)'].sum())
                     weight_df.rename(columns={'PO Item Value (GC)':'Item Total Spend'}, inplace=True)
                     weight_df.reset_index(inplace=True)
 
                     #!44444
                     new_a2a = pd.merge(new_a2a, weight_df,  how='left', on='Material/Service No.')
+                    
+                     
                     new_a2a['Item Weight'] = new_a2a['Item Total Spend'] / (new_a2a['PO Item Value (GC)'].sum())
                     new_a2a['delta'] = 0.0
-                    new_a2a['percentage'] = 0.0            
+                    new_a2a['percentage'] = 0.0   
+                    new_a2a['Unit Price'] = new_a2a['Unit Price'].astype('float')
+                    new_a2a['delta'] = new_a2a['delta'].astype('float')
                     new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'delta'] = new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['2021 rates'] - new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Unit Price']
                     new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax(), 'percentage'] = (new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['delta'] / new_a2a.loc[new_a2a.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]['Unit Price']) * 100
 
                     #!5555
-                    DMP_RFP.new_a2a_after_search = new_a2a
                     
                     today = pd.to_datetime("today").normalize()
                     current_date = today.strftime('%Y-%m-%d')
@@ -273,7 +281,8 @@ class DMP_RFP(DMP):
                     rfp_1['Unit Price'] =  rfp_1['2021 rates']
                     rfp_1['delta'] = 0
                     rfp_1['percentage'] = 0
-                    DMP_RFP.rfp_1_after_search=rfp_1
+                    rfp_1_after_search = rfp_1
+                    rfp_1_after_search.to_csv(str(BASE_DIR) + "/static/rfp_1_after_search_" + str(user_id) + ".csv", index = False)
 
                     #!6666        
                     rfp_2 = new_a2a.drop_duplicates(subset = ['Material/Service No.'], keep = 'last') 
@@ -281,11 +290,14 @@ class DMP_RFP(DMP):
                     rfp_2['Unit Price'] =  rfp_1['2020 rates']
                     rfp_2['delta'] = 0
                     rfp_2['percentage'] = 0
-                    DMP_RFP.rfp_2_after_search = rfp_2
 
                     #!77777
                     temp_dash = rfp_1.append(rfp_2)
-                    DMP_RFP.temp_dash_after_search=temp_dash
+                    temp_dash_after_search = temp_dash
+                    temp_dash_after_search.to_csv(str(BASE_DIR) + "/static/temp_dash_after_search_" + str(user_id) + ".csv", index = False)
+                    
+                    
+                    
                     df_1 = new_a2a.append(temp_dash)
                     df_1['PO Item Creation Date'] = pd.DatetimeIndex(df_1['PO Item Creation Date'])
                     #! bug
@@ -297,17 +309,30 @@ class DMP_RFP(DMP):
                     df_1['delta'] = df_1['2021 rates'] - df_1['Unit Price']
 
                     #!8888
-                    DMP_RFP.df_1_after_search = df_1
+                    df_1_after_search = df_1
+                    df_1_after_search.to_csv(str(BASE_DIR) + "/static/df_1_after_search_" + str(user_id) + ".csv", index = False)
+                    
+                    
                     total_items_app = pb_df.shape[0]
                     app_to_apple_count_pb = app_rfp_df.shape[0]
                     benchmark_perscent = (app_to_apple_count_pb/total_items_app)*100
                     benchmark_perscent = round(benchmark_perscent, 2)
                     
-                    DMP_RFP.total_items_rfp_after_search=total_items_app
-                    DMP_RFP.benchmark_perscent_rfp_after_search=benchmark_perscent
+                    total_items_rfp_after_search = total_items_app
+                    benchmark_perscent_rfp_after_search = benchmark_perscent
 
-                    DMP_RFP.plot_bg='rgba(171, 248, 190, 0.8)'
 
+
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        user_session_with_data.list_of_regions= list_of_regions
+                        user_session_with_data.categories_rfp= categories_rfp
+                        user_session_with_data.min_date = min_date
+                        user_session_with_data.max_date = max_date
+                        user_session_with_data.total_items_rfp_after_search = total_items_rfp_after_search
+                        user_session_with_data.benchmark_perscent_rfp_after_search = benchmark_perscent_rfp_after_search
+                        
+                        session.commit()
                     response=JsonResponse({
                         "data":"name is succeess",
                     })
@@ -340,13 +365,18 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type = check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
+
                     for index, file_ts in enumerate(request.FILES.getlist('input_files')):
                         try:
-                            csv_file_name=file_ts.name            
                             rfp_file=pd.read_csv(file_ts.file)
-                            DMP_RFP.uploaded_rfp_file=rfp_file
+
+                            rfp_file.to_csv(str(BASE_DIR) + '/static/uploaded_rfp_file_'+ str(user_id)+'.csv', index = False)
+
 
                         except Exception as e:
                             continue
@@ -383,23 +413,24 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                  
                 if user_type == 'customer':  
-
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        categories_rfp = user_session_with_data.categories_rfp
+                        total_items_rfp_after_search = user_session_with_data.total_items_rfp_after_search
+                        benchmark_perscent_rfp_after_search = user_session_with_data.benchmark_perscent_rfp_after_search
+                        
+                        session.commit()
                     #! return finded rows data in table 
                     response = JsonResponse({
-                            # 'apple_to_apple_count':DMP_RFP.apple_to_apple_count,
-                            # 'regions_rfp':DMP_RFP.list_of_regions_rfp,
                             'vendor_names':  ["SOLAR"],
-                            'categories': DMP_RFP.categories_rfp,
-                            'rfp_name':DMP_RFP.rfp_name,
-                            'region_name':DMP_RFP.rfp_region_name,
-
-                            'vendor_name':DMP_RFP.rfp_vendor_name,
-                            'currency':DMP_RFP.rfp_currency_name,
-
-                            'benchmark_perscent_rfp':DMP_RFP.benchmark_perscent_rfp_after_search,
-                            'total_items_rfp':DMP_RFP.total_items_rfp_after_search
+                            'categories': categories_rfp,
+                            'benchmark_perscent_rfp':benchmark_perscent_rfp_after_search,
+                            'total_items_rfp':total_items_rfp_after_search
                         })
                         
                     add_get_params(response)
@@ -427,21 +458,36 @@ class DMP_RFP(DMP):
     @csrf_exempt
     def get_dates(request):
         if request.method =='POST':
+            
+            
+            with Session(engine) as session:
+                user_id = request.POST.get('user_id')
+                user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                min_date = user_session_with_data.min_date
+                max_date = user_session_with_data.max_date
+                
             response = JsonResponse({
-                 'min_date':DMP_RFP.min_date,
-                 'max_date':DMP_RFP.max_date,
+                 'min_date':min_date,
+                 'max_date':max_date,
                  })
             add_get_params(response)
             return response
+        
 
     @csrf_exempt
     def get_dates_rfp(request):
         if request.method =='POST':
             # all_apple_to_apple 
             #! return finded rows data in table 
+            with Session(engine) as session:
+                user_id = request.POST.get('user_id')
+                user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                min_date_non_pricebook = user_session_with_data.min_date_non_pricebook
+                max_date_non_pricebook = user_session_with_data.max_date_non_pricebook
+                session.commit()
             response = JsonResponse({
-                 'min_date':DMP_RFP.min_date_non_pricebook,
-                 'max_date':DMP_RFP.max_date_non_pricebook,
+                 'min_date': min_date_non_pricebook,
+                 'max_date': max_date_non_pricebook,
                  })
             add_get_params(response)
             return response
@@ -452,12 +498,12 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
                 if user_type == 'supplier' or user_type == 'customer':
-                    # json_records_app=DMP_RFP.unique_increase_df.columns.to_json(orient='records')
-                    # increase_json=json.loads(json_records_app)    
-                    # pricebook_table=pd.read_csv(str(BASE_DIR) + '/static/unique_increase_df.csv', error_bad_lines=False, dtype="unicode")
-                    unique_increase_df=DMP_RFP.unique_increase_df
+
+                    unique_increase_df = pd.read_csv(str(BASE_DIR) + "/static/unique_increase_df_" + str(user_id) + ".csv",error_bad_lines=False)                    
                     try:
                         unique_increase_df.reset_index(inplace=True)
                         unique_increase_df['index'] = unique_increase_df.index
@@ -466,11 +512,10 @@ class DMP_RFP(DMP):
                     except Exception as e:
                         pass
 
-                    DMP_RFP.unique_increase_df=unique_increase_df
+                    unique_increase_df.to_csv(str(BASE_DIR) + '/static/unique_increase_df_'+ str(user_id)+'.csv', index = False)
                 
                     df=unique_increase_df
 
-                    DMP_RFP.dicount_df=df
                     json_string = df.columns.tolist()
                     json_records_all=df.to_json(orient='records')
                     
@@ -511,10 +556,15 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                  
                 if user_type == 'supplier':
                     dict = json.loads(request.POST.get('key1'))
-                    pricebook_table=DMP_RFP.dicount_df
+                    dicount_df = pd.read_csv(str(BASE_DIR) + "/static/dicount_df_" + str(user_id) + ".csv",error_bad_lines=False)
+                    
+                    pricebook_table=dicount_df
                     dict_df= pd.DataFrame(dict.items(), columns=['index', 'Input Value'])
                     dict_df['index']=dict_df['index'].astype('str')
                     pricebook_table['index']=pricebook_table['index'].astype('str')
@@ -556,52 +606,79 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
+                    global plot_bg
                     input_min_date = request.POST.get('input_min_date')
                     input_max_date = request.POST.get('input_max_date')
-                    input_categories = request.POST.getlist('categories_rfp[]')
+                    input_categories =  request.POST.getlist('categories_rfp[]')
+                    
                     today = pd.to_datetime("today").normalize()
                     current_date = today.strftime('%Y-%m-%d')
 
+                    df_1 = pd.read_csv(str(BASE_DIR) + "/static/df_1_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    temp_dash = pd.read_csv(str(BASE_DIR) + "/static/temp_dash_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    app_rfp_df = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
-                    df_1 = DMP_RFP.df_1_after_search.copy()
+                    new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
+ 
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
+                    temp_dash['Material/Service No.'] = temp_dash['Material/Service No.'].astype('str')
+                    df_1['Material/Service No.'] = df_1['Material/Service No.'].astype('str')
+ 
                     df_1[df_1['Product Category Description'].isin(input_categories)]
-                    
-                    temp_dash = DMP_RFP.temp_dash_after_search.copy()
                     temp_dash = temp_dash[temp_dash['Product Category Description'].isin(input_categories)]
                     
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
-                    new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
-                    print("-------------------------------------test new_a2a test-1: ", new_a2a.shape)
 
-                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
-                    print("-------------------------------------test app_to_app_rfp: ",app_to_app_rfp.shape)
-                    print("-------------------------------------test app_rfp_df: ",app_rfp_df.shape)
-                    print("-------------------------------------test new_a2a test-2: ", new_a2a.shape)
+                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date)]
+                    new_a2a = new_a2a[new_a2a['Product Category Description'].isin(input_categories)]
+
+                    print("-------------------------------------test df_1: ",df_1.shape)
+                    print("-------------------------------------test temp_dash: ",temp_dash.shape)
+                    print("-------------------------------------test app_to_app_rfp: ", app_to_app_rfp.shape)
+                    print("-------------------------------------test app_rfp_df: ", app_rfp_df.shape)
+                    print("-------------------------------------test new_a2a: ", new_a2a.shape)
+                    
                     print("-------------------------------------test input_categories: ", input_categories)
                     print("-------------------------------------test input_min_date: ", input_min_date)
                     print("-------------------------------------test input_max_date: ", input_max_date)
 
+
                     if new_a2a.shape[0] > 0:
                         list_of_idxes = get_most_spent_material_indexes(new_a2a)
 
-                        #!bug   
                         if len(list_of_idxes) > 0:
-                
+
                             result = df_1[df_1['Material/Service No.'].isin(list_of_idxes)]
                             result_2 = new_a2a[new_a2a['Material/Service No.'].isin(list_of_idxes)]
                             result_3 = temp_dash[temp_dash['Material/Service No.'].isin(list_of_idxes)]
 
-                            last_purchased = result_2.loc[result_2.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]
+                            print("-------------------------------------test result     1: ", result.shape)
+                            print("-------------------------------------test result_2   1: ", result_2.shape)
+                            print("-------------------------------------test result_3   1: ", result_3.shape)
+                            
+                            last_purchasedd = result_2.loc[result_2.groupby('Material/Service No.')['PO Item Creation Date'].idxmax()]
+                         
                             #  *************************************** FIXXX BUGGGGGGGGGGG ************************************************
-                            for index, row in last_purchased.iterrows():
+                            
+                            for index, row in last_purchasedd.iterrows():
+                                
                                 result.loc[result['Material/Service No.'] == row['Material/Service No.'], 'Material # + abs percentage'] = row['Material/Service No.'] + '  (' + str(round(row['percentage'],1),) + '%)'
                                 result.loc[result['Material/Service No.'] == row['Material/Service No.'], 'percentage'] = row['percentage']
                                 result_3.loc[result_3['Material/Service No.'] == row['Material/Service No.'], 'Material # + abs percentage'] = row['Material/Service No.'] + '  (' + str(round(row['percentage'],1),) + '%)'
                             
 
+                            print("-------------------------------------test result     2: ", result.shape)
+                            print("-------------------------------------test result_2   2: ", result_2.shape)
+                            print("-------------------------------------test result_3   2: ", result_3.shape)
+                            
+                            
+                            result_3['Material/Service No.'] = result_3['Material/Service No.'].astype('str')
+                            
                             top_10_total_spend = result_2['PO Item Value (GC)'].sum()
                             total_spend = new_a2a['PO Item Value (GC)'].sum()
                             top_10_spend_weight = round((top_10_total_spend / total_spend) * 100, 1)
@@ -627,7 +704,7 @@ class DMP_RFP(DMP):
                             add_get_params(response)
                             return response
                         else:
-                            fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                            fig = update_layout_fig_1_2(plot_bg)
                             div_1 = opy.plot(fig, auto_open=False, output_type='div')
                             #! return finded rows data in table 
                             response = JsonResponse({            
@@ -637,7 +714,7 @@ class DMP_RFP(DMP):
                             add_get_params(response)
                             return response
                     else:
-                        fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                        fig = update_layout_fig_1_2(plot_bg)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
                         #! return finded rows data in table 
                         response = JsonResponse({            
@@ -673,31 +750,49 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                global plot_bg
+                
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+
+                #*cheking user status
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
                     input_min_date = request.POST.get('input_min_date')
                     input_max_date = request.POST.get('input_max_date')
                     input_categories =request.POST.getlist('categories_rfp[]')
+
                     today = pd.to_datetime("today").normalize()
                     current_date = today.strftime('%Y-%m-%d')
 
-                    df_1 = DMP_RFP.df_1_after_search.copy()
+                    df_1 = pd.read_csv(str(BASE_DIR) + "/static/df_1_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    temp_dash = pd.read_csv(str(BASE_DIR) + "/static/temp_dash_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    
                     df_1[df_1['Product Category Description'].isin(input_categories)]
                     
-                    rfp_1 = DMP_RFP.rfp_1_after_search.copy()
+                    rfp_1_after_search = pd.read_csv(str(BASE_DIR) + "/static/rfp_1_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    
+                    rfp_1 = rfp_1_after_search.copy()
                     rfp_1 = rfp_1[rfp_1['Product Category Description'].isin(input_categories)]
 
-                    temp_dash = DMP_RFP.temp_dash_after_search.copy()
+                    
                     temp_dash = temp_dash[temp_dash['Product Category Description'].isin(input_categories)]
                     
+                    app_rfp_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
+                    
+                    app_rfp_df = app_rfp_df_after_search.copy()
                     new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
 
-                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
+                    temp_dash['Material/Service No.'] = temp_dash['Material/Service No.'].astype('str')
+                    df_1['Material/Service No.'] = df_1['Material/Service No.'].astype('str')
 
+
+                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
                     
                     drop_df = new_a2a[new_a2a['delta'] < 0]
                     if drop_df.shape[0] > 0:
@@ -715,7 +810,6 @@ class DMP_RFP(DMP):
                             all_drop_df.loc[all_drop_df['Material/Service No.'] == row['Material/Service No.'], 'Material # + percentage'] = row['Material/Service No.'] + '  (' + str(round(row['percentage'],1),) + '%)'
                             all_drop_df.loc[all_drop_df['Material/Service No.'] == row['Material/Service No.'], 'percentage'] = row['percentage']
                             all_drop_df.loc[all_drop_df['Material/Service No.'] == row['Material/Service No.'], 'Item WEight'] = row['Item Weight']
-            
                             result_3.loc[result_3['Material/Service No.'] == row['Material/Service No.'], 'Material # + percentage'] = row['Material/Service No.'] + '  (' + str(round(row['percentage'],1),) + '%)'
                             result_3.loc[result_3['Material/Service No.'] == row['Material/Service No.'], 'percentage 0'] = row['percentage']
 
@@ -758,7 +852,7 @@ class DMP_RFP(DMP):
                         add_get_params(response)
                         return response
                     else:
-                        fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                        fig = update_layout_fig_1_2(plot_bg)
 
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
 
@@ -795,36 +889,40 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
 
                     input_min_date= request.POST.get('input_min_date')
                     input_max_date= request.POST.get('input_max_date')
                     input_categories=request.POST.getlist('categories_rfp[]')
+                    
                     today = pd.to_datetime("today").normalize()
                     current_date = today.strftime('%Y-%m-%d')
 
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    app_rfp_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    rfp_1 = pd.read_csv(str(BASE_DIR) + "/static/rfp_1_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    temp_dash = pd.read_csv(str(BASE_DIR) + "/static/temp_dash_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
-                    new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
-                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
-
-                                
-
-                    rfp_1 = DMP_RFP.rfp_1_after_search.copy()
-                    rfp_1 = rfp_1[rfp_1['Product Category Description'].isin(input_categories)]
-
-
-                    temp_dash = DMP_RFP.temp_dash_after_search.copy()
-                    temp_dash = temp_dash[temp_dash['Product Category Description'].isin(input_categories)]
+                                        
                     
-                        
+                    app_rfp_df = app_rfp_df_after_search.copy()
+                    new_a2a = get_a2a_df(app_to_app_rfp, app_rfp_df)
+                    
+                    temp_dash['Material/Service No.'] = temp_dash['Material/Service No.'].astype('str')
+                    rfp_1['Material/Service No.'] = rfp_1['Material/Service No.'].astype('str')
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
+                    
+                    new_a2a = new_a2a[(new_a2a['PO Item Creation Date'] >= input_min_date) & (new_a2a['PO Item Creation Date'] <= input_max_date) & (new_a2a['Product Category Description'].isin(input_categories))]
+                    rfp_1 = rfp_1[rfp_1['Product Category Description'].isin(input_categories)]
+                    temp_dash = temp_dash[temp_dash['Product Category Description'].isin(input_categories)]
                     increase_df = new_a2a[new_a2a['delta'] > 0]
                     
+                    
                     if increase_df.shape[0] > 0:
-
-
 
                         increase_df_idxs = increase_df['Material/Service No.'].tolist()
                         a_1 = new_a2a[new_a2a['Material/Service No.'].isin(increase_df_idxs)]
@@ -886,7 +984,7 @@ class DMP_RFP(DMP):
 
                         return response
                     else:
-                        fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                        fig = update_layout_fig_1_2(plot_bg)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
                     
                         #! return finded rows data in table 
@@ -923,19 +1021,30 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                global plot_bg
+                
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':
-                    
-            
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id'] 
+                
+                if user_type == 'customer':    
                     input_categories = request.POST.getlist('categories_rfp[]')
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
                     app_to_app_rfp = app_to_app_rfp[app_to_app_rfp['Product Category Description'].isin(input_categories)]
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
+                    app_rfp_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    # app_to_app_rfp['Material/Service No.']=  app_to_app_rfp['Material/Service No.'].astype('str')
+                    # app_rfp_df_after_search['Material/Service No.']=  app_rfp_df_after_search['Material/Service No.'].astype('str')
+                 
+                 
+                    app_rfp_df = app_rfp_df_after_search.copy()
                     
                     new_a2a = pd.merge(app_to_app_rfp, app_rfp_df[['BP Material / \nService Master No.', '2021 rates', '2020 rates']], 
                                     how='left', left_on='Material/Service No.', right_on='BP Material / \nService Master No.')
                     new_a2a['2021 rates'] = new_a2a['2021 rates'].astype('float')
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
+                  
                     new_a2a = new_a2a[new_a2a['Product Category Description'].isin(input_categories)]
                     
                     
@@ -943,16 +1052,30 @@ class DMP_RFP(DMP):
                     one_year_before = today - datetime.timedelta(days=1*365)
                     starting_day_of_last_year = one_year_before.replace(month=1, day=1)    
                     ending_day_of_last_year = one_year_before.replace(month=12, day=31)
-            
                     
                     df_4 = new_a2a.copy()
+                    
+                    
+                    print("df_4 shape: ",df_4.shape) 
+                    # print("df_4 info: ",df_4.info()) 
+                                       
+                    
+                    
                     one_year_df_4 = df_4[(df_4['PO Item Creation Date'] >= '2020-01-01') & (df_4['PO Item Creation Date'] <= '2020-12-31')]
+                    
+                    print("one_year_df_4 shape: ",one_year_df_4.shape) 
+                    # print("one_year_df_4 info: ",one_year_df_4.info()) 
+                    
+                    
                     temp_df = one_year_df_4.groupby('Material/Service No.')['PO Item Quantity'].mean().reset_index()
                     temp_df.rename(columns={'PO Item Quantity': 'New Demand'}, inplace=True)
                     one_year_df_4 = pd.merge(one_year_df_4, temp_df,  how='left', on='Material/Service No.')
 
                     count = len(one_year_df_4['Material/Service No.'].value_counts().index.tolist())
-                    rfp_percentage = (count / DMP_RFP.pb_df_after_search.shape[0]) * 100            
+                    pb_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/pb_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+
+                    rfp_percentage = (count / pb_df_after_search.shape[0]) * 100            
 
                     # Current
                     one_year_df_4['Curren RFP Last Year Spend'] = one_year_df_4['PO Item Quantity'] * one_year_df_4['2021 rates']
@@ -996,7 +1119,12 @@ class DMP_RFP(DMP):
                     total_spends = [sum_4, sum_5, sum_3, sum_2, sum_1]
                     y_ = ['Pricebook', 'Lowest', 'Last', 'Average', 'Proposed']
 
-                    DMP_RFP.total_spends_in_4=total_spends
+                    total_spends_in_4 = total_spends
+                    
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        user_session_with_data.total_spends_in_4 = total_spends_in_4
+                        session.commit()
                     
                     y_2 = [' ', '  ' , '   ', '    ', '     ']
             
@@ -1043,20 +1171,32 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']  
+                
+                global plot_bg
                 if user_type == 'customer':
                 
                     input_min_date= request.POST.get('input_min_date')
                     input_max_date= request.POST.get('input_max_date')
                     input_categories=request.POST.getlist('categories_rfp[]')
+                    
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
 
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
                     app_to_app_rfp = app_to_app_rfp[app_to_app_rfp['Product Category Description'].isin(input_categories)]
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
+                    app_rfp_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                   
+                    # app_to_app_rfp['Material/Service No.']=  app_to_app_rfp['Material/Service No.'].astype('str')
+                    # app_rfp_df_after_search['Material/Service No.']=  app_rfp_df_after_search['Material/Service No.'].astype('str')
+                    app_rfp_df = app_rfp_df_after_search.copy()
                 
                     new_a2a = pd.merge(app_to_app_rfp, app_rfp_df[['BP Material / \nService Master No.', '2021 rates', '2020 rates']], 
                         how='left', left_on='Material/Service No.', right_on='BP Material / \nService Master No.')
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
+             
                     new_a2a = new_a2a[new_a2a['Product Category Description'].isin(input_categories)]
 
                     new_a2a['PO Item Creation Date'] = pd.DatetimeIndex(new_a2a['PO Item Creation Date'])
@@ -1074,7 +1214,9 @@ class DMP_RFP(DMP):
 
 
                         count = len(df_all_4['Material/Service No.'].value_counts().index.tolist())
-                        rfp_percentage = (count / DMP_RFP.pb_df_after_search.shape[0]) * 100    
+                        pb_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/pb_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                        
+                        rfp_percentage = (count / pb_df_after_search.shape[0]) * 100    
                         
                         # Current
                         df_all_4['Curren RFP Total Spend'] = df_all_4['PO Item Quantity'] * df_all_4['2021 rates']
@@ -1118,7 +1260,6 @@ class DMP_RFP(DMP):
                         sum_4 = type_1_df['Pricebook Last Year Spend'].sum() 
                         
                         total_spends = [sum_4, sum_5, sum_3, sum_2, sum_1]
-                        DMP_RFP.total_spends_in_5 = total_spends
 
                         y_ = ['Pricebook', 'Lowest', 'Last', 'Average', 'Proposed']
                         y_2 = [' ', '  ' , '   ', '    ', '     ']
@@ -1140,7 +1281,7 @@ class DMP_RFP(DMP):
                     
                     
                     else:
-                        fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                        fig = update_layout_fig_1_2(plot_bg)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
                         response = JsonResponse({            
                             'plot_div_5_rfp': div_1,
@@ -1176,10 +1317,13 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-
-                    pb_df=DMP_RFP.pb_df_after_search.copy()
+                    pb_df_after_search = pd.read_csv(str(BASE_DIR) + "/static/pb_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    pb_df=pb_df_after_search.copy()
                     pb_df['2021 rates'] = pb_df['2021 rates'].astype(float)
                     pb_df['2020 rates'] = pb_df['2020 rates'].astype(float)
                     sum_1 = pb_df['2021 rates'].sum()
@@ -1237,16 +1381,21 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
                     global plot_bg
-                    input_min_date= request.POST.get('input_min_date')
-                    input_max_date= request.POST.get('input_max_date')
-                    input_categories=request.POST.getlist('categories_rfp[]')
-                    vendor_name = DMP_RFP.rfp_vendor_name
-                    vendor_name = vendor_name.lower()
-                    
-                    df=DMP_RFP.df_full.copy()
+                    input_min_date = request.POST.get('input_min_date')
+                    input_max_date = request.POST.get('input_max_date')
+                    input_categories = request.POST.getlist('categories_rfp[]')
+                    vendor_name = request.POST.get('vendor_name').lower()
+                    # ! ************************************************************
+
+                    df_full = pd.read_csv(str(BASE_DIR) + "/static/df_full_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    df = df_full.copy()
                     df['PO Item Creation Date'] = pd.DatetimeIndex(df['PO Item Creation Date'])
                     df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
                     df = df[df['Product Category Description'].isin(input_categories)]
@@ -1278,7 +1427,7 @@ class DMP_RFP(DMP):
                             a = a[(a['PO Item Creation Date'] >= input_min_date) & (a['PO Item Creation Date'] <= input_max_date)]
                             
                             total_spend = a['PO Item Value (GC)'].sum() / 1000000
-                            DMP_RFP.total_spend = str(round(total_spend, 2)) + 'M'
+                            total_spend = str(round(total_spend, 2)) + 'M'
                             
                             b = pd.DataFrame(a.groupby(by=['Product Category'])['PO Item Value (GC)'].sum())
                             b.sort_values(by=['PO Item Value (GC)'], ascending=False, inplace=True)
@@ -1331,7 +1480,7 @@ class DMP_RFP(DMP):
                             div_1 = opy.plot(fig, auto_open=False, output_type='div')
                             response = JsonResponse({            
                                 'plot_div_7_rfp': div_1,
-                                'total_spend': DMP_RFP.total_spend,
+                                'total_spend': total_spend,
                                     })
                             add_get_params(response)
                             return response
@@ -1345,7 +1494,7 @@ class DMP_RFP(DMP):
                             return response
 
                     else:
-                        fig = update_layout_fig_1_2(DMP_RFP.plot_bg)
+                        fig = update_layout_fig_1_2(plot_bg)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
 
                         #! return finded rows data in table 
@@ -1382,26 +1531,28 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
+
                     print("Teteteteteteteteeteteetetetetettettetettetteetetetteeteteteteteetetee")
                 
-                    input_min_date = request.POST.get('input_min_date')
-                    input_max_date = request.POST.get('input_max_date')
-                    input_categories=request.POST.getlist('categories_rfp[]')
-                    
-                    vendor_name = DMP_RFP.rfp_vendor_name
-                    vendor_name = vendor_name.lower()
-                    
-                    total_spends = DMP_RFP.total_spends_in_4
-                    total_spends_2 = DMP_RFP.total_spends_in_5
+                    vendor_name = request.POST.get('vendor_name').lower()
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        total_spends = user_session_with_data.total_spends_in_4
+
                     y_ = ['Pricebook', 'Lowest', 'Last Purchase', 'Average', 'Proposed']
                     rec_dict = dict(zip(y_, total_spends))
 
                     print('\n\n\n')
                     print('rec_dict: ', rec_dict)
 
-                    df = DMP_RFP.df_full.copy()
+                    df_full = pd.read_csv(str(BASE_DIR) + "/static/df_full_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    df = df_full.copy()
                     # df = df[(df['PO Item Creation Date'] >= input_min_date) & (df['PO Item Creation Date'] <= input_max_date)]
                     # df = df[df['Product Category Description'].isin(input_categories)]
                 
@@ -1441,12 +1592,21 @@ class DMP_RFP(DMP):
 
 
 
-                #!  ------------------------- START  Evaluation for pricebook items -------------------------
-                    app_to_app_rfp = DMP_RFP.app_to_app_rfp_after_search.copy()
-                    app_rfp_df = DMP_RFP.app_rfp_df_after_search.copy()
+                #!  ------------------------- START  Evaluation for pricebook items -------------------------]
+                    
+                    app_to_app_rfp = pd.read_csv(str(BASE_DIR) + "/static/app_to_app_rfp_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    app_rfp_df = pd.read_csv(str(BASE_DIR) + "/static/app_rfp_df_after_search_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    
+                    print('app_to_app_rfp: 0000000000000000000000000000000000000000000000000000000000000000, ', app_to_app_rfp.info())
+                    print('app_rfp_df    : 0000000000000000000000000000000000000000000000000000000000000000, ', app_rfp_df.info())
+
+                    # app_to_app_rfp['Material/Service No.']=  app_to_app_rfp['Material/Service No.'].astype('str')
+                    # app_rfp_df = app_to_app_rfp.copy()
                     
                     new_a2a = pd.merge(app_to_app_rfp, app_rfp_df[['BP Material / \nService Master No.', '2021 rates', '2020 rates']], 
                         how='left', left_on='Material/Service No.', right_on='BP Material / \nService Master No.')
+                    
+                    new_a2a['Material/Service No.'] = new_a2a['Material/Service No.'].astype('str')
                     
                     unique_increase_df = find_price_raisen_materials_pb(new_a2a)
                 #!  ------------------------- END  Evaluation for pricebook items -------------------------
@@ -1456,10 +1616,11 @@ class DMP_RFP(DMP):
   
                     new_df = df.loc[~df.index.isin(a2a.base_index.tolist())]
                     new_df = find_a2a_non_pricebook(new_df)
-                    DMP_RFP.non_pricebook_df = new_df.copy()
+                    non_pricebook_df = new_df.copy()
+                    non_pricebook_df.to_csv(str(BASE_DIR) + '/static/non_pricebook_df_'+ str(user_id)+'.csv', index = False)
                     
-                    DMP_RFP.min_date_non_pricebook = min(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
-                    DMP_RFP.max_date_non_pricebook = max(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
+                    min_date_non_pricebook = min(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
+                    max_date_non_pricebook = max(new_df['PO Item Creation Date']).strftime('%Y-%m-%d')
 
                     increase_df_23 = find_price_raisen_materials_non_pb(new_df)
                 #!  ------------------------- END  Evaluation for nonpricebook items -------------------------
@@ -1483,27 +1644,42 @@ class DMP_RFP(DMP):
 
 
                     all_increase_df = pricebook_increase_df.append(non_pricebook_increase_df)
-                    DMP_RFP.unique_increase_df = all_increase_df
+                    unique_increase_df = all_increase_df
+                    unique_increase_df.to_csv(str(BASE_DIR) + '/static/unique_increase_df_'+ str(user_id)+'.csv', index = False)
+                    
                 #!  ------------------------- END  Combining price raisen items from priecbook and non-pricebook  -------------------------
 
 
 
                 #!  ------------------------------------------------ START  Recommendation  ------------------------------------------------
 
-                    DMP_RFP.cond_1 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend > last_year_total_spend * 0.7
-                    DMP_RFP.cond_2 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend < last_year_total_spend * 0.7
-                    DMP_RFP.cond_3 = rfp_valuation < last_purchase_valuation and rfp_valuation > average_prices_valuation
-                    DMP_RFP.cond_4 = rfp_valuation > last_purchase_valuation and rfp_valuation > average_prices_valuation and rfp_valuation > pricebook_spend
-                    DMP_RFP.cond_5 = rfp_valuation < average_prices_valuation and rfp_valuation > last_purchase_valuation
-                    DMP_RFP.cond_6 = rfp_valuation < pricebook_spend and rfp_valuation > last_purchase_valuation
+                    cond_1 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend > last_year_total_spend * 0.7
+                    cond_2 = rfp_valuation < last_purchase_valuation and rfp_valuation < average_prices_valuation and rfp_valuation < pricebook_spend  and pricebook_spend < last_year_total_spend * 0.7
+                    cond_3 = rfp_valuation < last_purchase_valuation and rfp_valuation > average_prices_valuation
+                    cond_4 = rfp_valuation > last_purchase_valuation and rfp_valuation > average_prices_valuation and rfp_valuation > pricebook_spend
+                    cond_5 = rfp_valuation < average_prices_valuation and rfp_valuation > last_purchase_valuation
+                    cond_6 = rfp_valuation < pricebook_spend and rfp_valuation > last_purchase_valuation
+                    
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        user_session_with_data.min_date_non_pricebook = min_date_non_pricebook
+                        user_session_with_data.max_date_non_pricebook = max_date_non_pricebook
+                        user_session_with_data.cond_1 = cond_1
+                        user_session_with_data.cond_2 = cond_2
+                        user_session_with_data.cond_3 = cond_3
+                        user_session_with_data.cond_4 = cond_4
+                        user_session_with_data.cond_5 = cond_5
+                        user_session_with_data.cond_6 = cond_6                        
+                        
+                        session.commit()
 
-                    if DMP_RFP.cond_1:
+                    if cond_1:
                         savings = rec_dict.get('Last Purchase') - rec_dict.get('Proposed')
                         message = "Valuation of the offer is lower than previous purchase, hence recommended to accept. Savings for the next year demand, based on last year demand, is $" + str(savings) + "."
                         rec_case_1=message
                 
-                    elif DMP_RFP.cond_2 or DMP_RFP.cond_3 or DMP_RFP.cond_4 or DMP_RFP.cond_5 or DMP_RFP.cond_6:
-                        message = "Dear supplier " + DMP_RFP.rfp_vendor_name + " our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
+                    elif cond_2 or cond_3 or cond_4 or cond_5 or cond_6:
+                        message = "Dear supplier " + vendor_name + " our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
                         rec_case_1=message
 
                     else:
@@ -1543,11 +1719,25 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                    if DMP_RFP.cond_2 or DMP_RFP.cond_3 or DMP_RFP.cond_4 or DMP_RFP.cond_5 or DMP_RFP.cond_6:
-                        message = "Dear supplier " + DMP_RFP.rfp_vendor_name + ", our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
-                        html_message='<p>Dear supplier <b>' + DMP_RFP.rfp_vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
+
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        cond_1 = user_session_with_data.cond_1
+                        cond_2 = user_session_with_data.cond_2
+                        cond_3 = user_session_with_data.cond_3
+                        cond_4 = user_session_with_data.cond_4
+                        cond_5 = user_session_with_data.cond_5
+                        cond_6 = user_session_with_data.cond_6 
+                        
+                    vendor_name = request.POST.get('vendor_name')
+                    if cond_2 or cond_3 or cond_4 or cond_5 or cond_6:
+                        message = "Dear supplier " + vendor_name + ", our analysis shows that there is significant increase in the attached list of items, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation." 
+                        html_message='<p>Dear supplier <b>' + vendor_name +'</b>,  our analysis shows that there is significant increase in some materials, therefore we would request you to provide discount according to the % shown in the table. Thank you for your cooperation.</p><h4> <a href="http://localhost:1000/discount_materials_supplier.html" target="_blank">Link for materials that has risen in price</a></h4>'
                         rec_case_1=message
                         
                         new_message  = strip_tags(html_message)
@@ -1602,15 +1792,25 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                global plot_bg
+                
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
-                if user_type == 'customer':        
-                    result_df = DMP_RFP.result_df.copy()
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
+                if user_type == 'customer':
+                    
+                    result_df = pd.read_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+                
                     if len(list_of_regions) == 4:
                         result_agt_df = result_df[result_df['Region'] == 'AGT']
                         avg_result_df = result_df.copy()
-                        a2a = DMP_RFP.a2a.copy()
+                        a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
                         result_agt_df.loc[:, 'Average Demand'] = 0.0
                         idx_list_4 = result_agt_df['Material/Service No.'].value_counts().index.tolist()
                         len(idx_list_4)
@@ -1771,7 +1971,7 @@ class DMP_RFP(DMP):
                         fig = go.Figure(go.Bar(
                             x=[20],
                             y=[' '],
-                            marker_color=[DMP_RFP.plot_bg],
+                            marker_color=[plot_bg],
                             orientation='h'))
                         fig.add_annotation(
                                         text= '<b>' + 'No Data!' + '</b>',
@@ -1783,12 +1983,12 @@ class DMP_RFP(DMP):
                                             color="black",
                                         ),
                             showarrow=False)
-                        fig.update_layout(    plot_bgcolor=DMP_RFP.plot_bg )
-                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=DMP_RFP.plot_bg,)
+                        fig.update_layout(    plot_bgcolor=plot_bg )
+                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=plot_bg,)
                         fig.update_layout(
                                 height=480,
                                 width=690,
-                                plot_bgcolor=DMP_RFP.plot_bg,)         
+                                plot_bgcolor= plot_bg,)         
                         fig.update_xaxes(visible=False, showticklabels=False)
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
                     
@@ -1826,15 +2026,26 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                global plot_bg
+                
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                    
+              
+                    result_df = pd.read_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
             
-                    result_df=DMP_RFP.result_df.copy()
+            
                     result_temp_df = result_df.copy()
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
-                    a2a=DMP_RFP.a2a.copy()
+            
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+            
+                    a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
                     if len(list_of_regions) ==4:
                         max_regions = ['AGT']
                         max_val = 0
@@ -1869,7 +2080,8 @@ class DMP_RFP(DMP):
                         result_df = result_df[result_df['Region'].isin(list_of_regions)]
                         result_agt_df = result_df[result_df['Region'] == 'AGT']
                         avg_result_df = result_df.copy()
-                        a2a=DMP_RFP.a2a.copy()
+                        a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
 
                         result_agt_df.loc[:, 'Average Demand'] = 0.0
                         idx_list_4 = result_agt_df['Material/Service No.'].value_counts().index.tolist()
@@ -2051,7 +2263,7 @@ class DMP_RFP(DMP):
                         fig = go.Figure(go.Bar(
                             x=[20],
                             y=[' '],
-                            marker_color=[DMP_RFP.plot_bg],
+                            marker_color=[plot_bg],
                             orientation='h'))
                         fig.add_annotation(
                                         text= '<b>' + 'No Data!' + '</b>',
@@ -2063,13 +2275,13 @@ class DMP_RFP(DMP):
                                             color="black",
                                         ),
                             showarrow=False)
-                        fig.update_layout(    plot_bgcolor=DMP_RFP.plot_bg )
+                        fig.update_layout(    plot_bgcolor=plot_bg )
 
-                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=DMP_RFP.plot_bg,)
+                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=plot_bg,)
                         fig.update_layout(
                                 height=480,
                                 width=690,
-                                plot_bgcolor=DMP_RFP.plot_bg,)         
+                                plot_bgcolor=plot_bg,)         
                         fig.update_xaxes(visible=False, showticklabels=False)
                 
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
@@ -2110,11 +2322,18 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                            
-                    a2a=DMP_RFP.a2a
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
+
+                    a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+                        
                     max_val = 0
                     max_region = ''
                     for region in list_of_regions:
@@ -2335,17 +2554,28 @@ class DMP_RFP(DMP):
         # Build the POST parameters
         if request.method == 'POST':
             try:    
+                global plot_bg
+                
+                 
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-
-                    result_df=DMP_RFP.result_df.copy()
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
+                    
+                    result_df = pd.read_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+                        
+                        
                     if len(list_of_regions) ==4:
 
                         result_agt_df = result_df[result_df['Region'] == 'AGT']
                         avg_result_df = result_df.copy()
-                        a2a=DMP_RFP.a2a.copy()
+                        a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
 
                         result_agt_df.loc[:, 'Average Demand'] = 0.0
                         idx_list_4 = result_agt_df['Material/Service No.'].value_counts().index.tolist()
@@ -2538,7 +2768,7 @@ class DMP_RFP(DMP):
                         fig = go.Figure(go.Bar(
                             x=[20],
                             y=[' '],
-                            marker_color=[DMP_RFP.plot_bg],
+                            marker_color=[plot_bg],
                             orientation='h'))
                         fig.add_annotation(
                                         text= '<b>' + 'No Data!' + '</b>',
@@ -2550,13 +2780,13 @@ class DMP_RFP(DMP):
                                             color="black",
                                         ),
                             showarrow=False)
-                        fig.update_layout(    plot_bgcolor=DMP_RFP.plot_bg )
+                        fig.update_layout(    plot_bgcolor=plot_bg )
 
-                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=DMP_RFP.plot_bg,)
+                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=plot_bg,)
                         fig.update_layout(
                                 height=480,
                                 width=690,
-                                plot_bgcolor=DMP_RFP.plot_bg,)         
+                                plot_bgcolor=plot_bg,)         
                         fig.update_xaxes(visible=False, showticklabels=False)
                 
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
@@ -2592,13 +2822,24 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
+                global plot_bg
                 if user_type == 'customer':
 
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
-                    last_result_df=DMP_RFP.result_df.copy()
-                    result_df=DMP_RFP.result_df.copy()
-                    a2a=DMP_RFP.a2a.copy()
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+
+                    
+                    result_df = pd.read_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+            
+                    last_result_df = result_df.copy()
+                    result_df = result_df.copy()
+                    a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
 
                     
                     if len(list_of_regions) == 4:
@@ -2838,7 +3079,7 @@ class DMP_RFP(DMP):
                         fig = go.Figure(go.Bar(
                             x=[20],
                             y=[' '],
-                            marker_color=[DMP_RFP.plot_bg],
+                            marker_color=[plot_bg],
                             orientation='h'))
                         fig.add_annotation(
                                         text= '<b>' + 'No Data!' + '</b>',
@@ -2850,13 +3091,13 @@ class DMP_RFP(DMP):
                                             color="black",
                                         ),
                             showarrow=False)
-                        fig.update_layout(    plot_bgcolor=DMP_RFP.plot_bg )
+                        fig.update_layout(    plot_bgcolor=plot_bg )
 
-                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=DMP_RFP.plot_bg,)
+                        fig.update_layout(xaxis_range=[0,20],  plot_bgcolor=plot_bg,)
                         fig.update_layout(
                                 height=480,
                                 width=690,
-                                plot_bgcolor=DMP_RFP.plot_bg,)         
+                                plot_bgcolor=plot_bg,)         
                         fig.update_xaxes(visible=False, showticklabels=False)
                 
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
@@ -2897,12 +3138,21 @@ class DMP_RFP(DMP):
         if request.method == 'POST':
             try:    
                 #*cheking user status
-                user_type=check_user_status(request)['user_type']  
+                user_response = check_user_status(request)
+                user_type = user_response['user_type']
+                user_id = user_response['user_id']
+                
                 if user_type == 'customer':
-                            
-                    a2a=DMP_RFP.a2a.copy()
-                    list_of_regions=DMP_RFP.list_of_regions.copy()
-                    last_result_df=DMP_RFP.result_df.copy()
+    
+                    a2a = pd.read_csv(str(BASE_DIR) + "/static/a2a_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+
+                    with Session(engine) as session:
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                        list_of_regions = user_session_with_data.list_of_regions
+                                          
+                    result_df = pd.read_csv(str(BASE_DIR) + "/static/result_df_" + str(user_id) + ".csv",error_bad_lines=False, parse_dates=['PO Item Creation Date'])
+            
+                    last_result_df = result_df.copy()
 
 
 

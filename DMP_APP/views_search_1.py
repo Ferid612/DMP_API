@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import time
 from .helpers import *
-from .custom_logic import *
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -12,19 +11,14 @@ warnings.filterwarnings('ignore')
 def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture_name, df): 
     if desc_short_in == '':
         desc_short_in = '_'
-    
-
-    print('SSSSSSSSSSSSSSSSSSSSSSSSSSS: df.shape  ', df.shape)
-    
+        
     tic = time.time()
     list_of_sources = {}
-    part_number_original =part_number
+    part_number_original = part_number
     part_number  = part_number.replace(' ', '')
-    manufacturer_name_original =manufacture_name 
+    manufacturer_name_original = manufacture_name 
     manufacture_name = manufacture_name.replace(' ', '')
-    
-    print(df.info())
-    print(df['Material/Service No.'].tolist()[:10])
+
     # --------------------------------------------------------   Part_1 start   --------------------------------------------------------
     print('\nPhase 1')
     df_item = df[df['Material/Service No.'] == item_number]
@@ -147,10 +141,15 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
     print('\nPhase 2')
     # # --------------------------------------------------------   Part_1 end   --------------------------------------------------------
 
+   
+
+   
     # *************************************************************************************************************************************************************************************
 
 
-    # --------------------------------------------------------   Part_2 start   --------------------------------------------------------
+
+
+# --------------------------------------------------------   Part_2 start   --------------------------------------------------------
     flag_2_1 = 0
     flag_2_2 = 0
     flag_2_3 = 0
@@ -226,9 +225,13 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
             print('Go to third step')
     # --------------------------------------------------------   Part_2 end   --------------------------------------------------------
 
+    
+    
     # *************************************************************************************************************************************************************************************
     
-    # --------------------------------------------------------   Part_3 start   --------------------------------------------------------
+    
+    
+# --------------------------------------------------------   Part_3 start   --------------------------------------------------------
     print('\nPhase 3')
     flag_3_1 = 0
     flag_3_2 = 0
@@ -285,9 +288,13 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
 
     # --------------------------------------------------------   Part_3 end   --------------------------------------------------------
 
+
+
     # *************************************************************************************************************************************************************************************
 
-    # --------------------------------------------------------   Part_4 start   --------------------------------------------------------
+
+
+# --------------------------------------------------------   Part_4 start   --------------------------------------------------------
     print('\nPhase 4')
     # tic = time.time()
     path = '[4]'
@@ -305,7 +312,9 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
     # --------------------------------------------------------   Part_4 end   --------------------------------------------------------
 
 
-    # --------------------------------------------------------   Part_5 end   --------------------------------------------------------
+   
+   
+# --------------------------------------------------------   Part_5 end   --------------------------------------------------------
     if manufacturer_name_original != '' and part_number_original != '':
         df_manf_in_desc =  df[(df['PO Item Description'].str.contains(manufacturer_name_original)) | (df['PO Item Description'].str.contains(manufacture_name))]
         if df_manf_in_desc.shape[0] > 0: 
@@ -318,7 +327,9 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
                 result = result.append(append_as_a2a(temp_df_1, path))
     # --------------------------------------------------------   Part_5 end   --------------------------------------------------------
 
-    # --------------------------------------------------------   Part_6 start   --------------------------------------------------------
+
+
+# --------------------------------------------------------   Part_6 start   --------------------------------------------------------
     if manufacture_name == '' and part_number == '' and item_number != '' and desc_short_in != '':
         df_6 = df[df['Material/Service No.'] == item_number]
         if len(df_6.groupby(['Manufacturer Part No.', 'Manufacturer Name'])) == 1 and df_6['Manufacturer Part No.'].iloc[0] == '#' and df_6['Manufacturer Name'].iloc[0] == 'NotAssigned':
@@ -332,7 +343,9 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
           
     # ----------------------------------------  ----------------   Part_6 end   --------------------------------------------------------
 
-    # --------------------------------------------------------   Part_7 start   --------------------------------------------------------
+
+
+# --------------------------------------------------------   Part_7 start   --------------------------------------------------------
     if item_number == '' and part_number == '' and manufacture_name == '' and desc_short_in != '':
         temp_df_7 = df[df['PO Item Description'] == desc_short_in] 
         if temp_df_7.shape[0] > 0:
@@ -340,6 +353,7 @@ def main_searching_algoritm(item_number, desc_short_in, part_number, manufacture
             result = result.append(append_as_a2a(temp_df_7, path))
     # --------------------------------------------------------   Part_7 end   --------------------------------------------------------
 
+# --------------------------------------------------------   SEARCHING END   --------------------------------------------------------
 
 
     app = pd.DataFrame(columns=result.columns)

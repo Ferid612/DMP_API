@@ -1,9 +1,9 @@
 from django.urls import path
-from .views_visual_rfp import *
-from .views_normalise_rfp import *
+from .views_visual_rfp import DMP_RFP
+from .views_normalise_rfp import DMP_RFP_normalise
+from .views_testing import *
 urlpatterns = [
     
-    path('upload_file_historical/',DMP_RFP.upload_file_historical),
     path('search_rfp/',DMP_RFP.search_rfp),
     path('search_rfp_new/',DMP_RFP.search_rfp_new),
     path('upload_file/',DMP_RFP.upload_file),
@@ -44,7 +44,6 @@ urlpatterns = [
     path('change_data_all_rfp/',DMP_RFP_normalise.change_data_all_rfp),
     path('get_data_back_rfp/',DMP_RFP_normalise.get_data_back_rfp),
 
-    path('save_rfp_name/',DMP_RFP_normalise.save_rfp_name),
 
 
  

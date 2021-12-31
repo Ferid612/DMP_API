@@ -1,10 +1,12 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .custom_logic import *
-from .models import *
+from .custom_logic import Session,check_user_status,engine, serializer, add_get_params, traceback, logging, BASE_DIR
+
+from .models import Customer, DMP_USERS, SupplierCustomerConnection, PricebookConnection, Pricebook, USER_SESSION
 
 import json
 import pandas as pd
+print("i am working*****************************************************************5555")
 
 
 class DMP_pricessbook:
