@@ -228,10 +228,14 @@ class DMP:
                         with Session(engine) as session:
 
                             user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
+                            
                             user_session_with_data.categories_in_result= categories_in_result
-                            user_session_with_data.result_data_all = result_data_all.to_json(orient='records')
-                            user_session_with_data.result_data_app = result_data_app.to_json(orient='records')
-                            user_session_with_data.result_data_app_copy = result_data_app_copy.to_json(orient='records')
+                            
+
+                            result_data_all.to_csv(str(BASE_DIR) + "/static/result_data_all_om_" + str(user_id) + ".csv", index = False)
+                            result_data_app.to_csv(str(BASE_DIR) + "/static/result_data_app_om_" + str(user_id) + ".csv", index = False)
+                            result_data_app_copy.to_csv(str(BASE_DIR) + "/static/result_data_app_copy_om_" + str(user_id) + ".csv", index = False)
+                            
                             user_session_with_data.item_numbers_in_result = item_numbers_in_result
                             user_session_with_data.short_desc_in_result = short_desc_in_result
                             user_session_with_data.new_manufacturer_name = new_manufacturer_name
@@ -364,11 +368,11 @@ class DMP:
                 if user_type == "customer":
                 
                     global plot_bg
-                    with Session(engine) as session:
+          
                         
-                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
-                        result_data_app_json = json.loads(user_session_with_data.result_data_app)
-                        app_to_app = pd.json_normalize(result_data_app_json)
+
+                    app_to_app = pd.read_csv(str(BASE_DIR) + "/static/result_data_app_om_" + str(user_id) + ".csv",)
+
                                
                     input_app_unit_of_measure = request.POST.get('app_unit_of_measure')
                     input_vendor_names = request.POST.getlist('input_vendor_names[]')
@@ -494,12 +498,9 @@ class DMP:
                         proposed_prices[i] = float(proposed_prices[i])
                         
 
-                    with Session(engine) as session:
+                    result_data_app_df = pd.read_csv(str(BASE_DIR) + "/static/result_data_app_om_" + str(user_id) + ".csv",)
 
-                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
-                        result_data_app_json = json.loads(user_session_with_data.result_data_app)
-                        result_data_app_df = pd.json_normalize(result_data_app_json)
-                        result_data_app_df['PO Item Creation Date']= pd.DatetimeIndex(result_data_app_df['PO Item Creation Date'])
+                    result_data_app_df['PO Item Creation Date']= pd.DatetimeIndex(result_data_app_df['PO Item Creation Date'])
                         
                         
                     result = result_data_app_df.copy()
@@ -689,15 +690,15 @@ class DMP:
                     # -------------------------------------  Recommendation e -------------------------------------
                     
                     # # -------------------------------------  Recommendation Start -------------------------------------
-                    # new_flag = 0
-                    # if len(vendor_names) > 1:
-                    #     new_flag =  1
-                    # try:
-                    #     message_recomandation ="Your recommendation succesfully send."
-                    #     message_recomandation = recommendation_alg(proposed_price,proposed_prices, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
-                    # except Exception as e:
-                    #     my_traceback = traceback.format_exc()
-                    #     logging.error(my_traceback)
+                    new_flag = 0
+                    if len(vendor_names) > 1:
+                        new_flag =  1
+                    try:
+                        message_recomandation ="Your recommendation succesfully send."
+                        message_recomandation = recommendation_alg(proposed_price,proposed_prices, min_price, last_price, avg_price, item_quantity, vendor_name,  min_ven_name, min_ven_val, new_flag)
+                    except Exception as e:
+                        my_traceback = traceback.format_exc()
+                        logging.error(my_traceback)
                         
                     #     print("redommendation excemption: ",my_traceback)
                     # # -------------------------------------  Recommendation End -------------------------------------
@@ -728,6 +729,7 @@ class DMP:
                     div_4 = opy.plot(fig, auto_open=False, output_type='div') 
                     print("message_recomandation:   ",message_recomandation)    
                     response = JsonResponse({
+                        
                         'plot_div_4': div_4,
                         'message': message_recomandation
                     })               

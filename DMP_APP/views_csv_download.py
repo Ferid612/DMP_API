@@ -20,13 +20,8 @@ def download_csv(request):
         
         #* get material searching result data 
         
-        with Session(engine) as session:
-   
-            user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id==user_id).first()
-            result_data_all_json = json.loads(user_session_with_data.result_data_all)
-            result_data_all = pd.json_normalize(result_data_all_json)
-      
-        df = result_data_all
+        df = pd.read_csv(str(BASE_DIR) + "/static/result_data_all_om_" + str(user_id) + ".csv")
+        
         try:
             df.drop('level_0', axis=1, inplace=True)
         except Exception as e:

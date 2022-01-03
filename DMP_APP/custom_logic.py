@@ -40,8 +40,7 @@ def check_token_time():
 
                 
                 user_session_with_data.first().categories_in_result=""
-                user_session_with_data.first().result_data_app=""
-                user_session_with_data.first().result_data_app_copy=""
+
                 
                 try:
                     os.remove(str(BASE_DIR) + "/static/all_dataframe_" + str(user_id) + ".csv")

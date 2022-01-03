@@ -678,7 +678,10 @@ class DMP_RFP(DMP):
                             
                             
                             result_3['Material/Service No.'] = result_3['Material/Service No.'].astype('str')
-                            
+                            result_3_for_visual= result_3[['Material/Service No.', 'PO No.', 'Manufacturer Part No.', 'PO Item Creation Date', 'Unit Price', '2020 rates','2021 rates', 'percentage', 'Item Weight', 'Item Total Spend', 'Product Category Description']]
+                            result_3_for_visual= result_3_for_visual.sort_values('Material/Service No.')
+                            result_3_html=result_3_for_visual.to_html(index=False)
+                                    
                             top_10_total_spend = result_2['PO Item Value (GC)'].sum()
                             total_spend = new_a2a['PO Item Value (GC)'].sum()
                             top_10_spend_weight = round((top_10_total_spend / total_spend) * 100, 1)
@@ -700,6 +703,8 @@ class DMP_RFP(DMP):
                             response = JsonResponse({            
                                 'plot_div_1_rfp': div_1,
                                 'top_10_spend_weight':top_10_spend_weight,
+                                'df_to_html': result_3_html,
+                                
                                     })
                             add_get_params(response)
                             return response
@@ -833,6 +838,11 @@ class DMP_RFP(DMP):
                         sorted_list[::-1].sort()
 
 
+
+                        result_3_for_visual= all_drop_df[['Material/Service No.', 'PO No.', 'Manufacturer Part No.', 'PO Item Creation Date', 'Unit Price', '2020 rates','2021 rates', 'percentage', 'Item Weight', 'Item Total Spend', 'Product Category Description']]
+                        result_3_for_visual= result_3_for_visual.sort_values('Material/Service No.')
+                        result_3_html=result_3_for_visual.to_html(index=False)   
+                        
                         fig = go.Figure()
 
                         fig = plot_2_1_pb(fig, all_drop_df, sorted_list)
@@ -845,9 +855,14 @@ class DMP_RFP(DMP):
 
                         div_1 = opy.plot(fig, auto_open=False, output_type='div')
 
+
+
+
                         response = JsonResponse({            
                             'plot_div_2_rfp': div_1,
                             'drop_10_total_spend_weight':round(drop_10_total_spend_weight,2),
+                            'df_to_html': result_3_html,
+                            
                                 })
                         add_get_params(response)
                         return response
@@ -962,7 +977,10 @@ class DMP_RFP(DMP):
                         sorted_list = np.round(sorted_list,2)
                         sorted_list[::-1].sort()
 
-
+                        result_3_for_visual= all_increase_df[['Material/Service No.', 'PO No.', 'Manufacturer Part No.', 'PO Item Creation Date', 'Unit Price', '2020 rates','2021 rates', 'percentage', 'Item Weight', 'Item Total Spend', 'Product Category Description']]
+                        result_3_for_visual= result_3_for_visual.sort_values('Material/Service No.')
+                        result_3_html=result_3_for_visual.to_html(index=False) 
+                        
                         fig = go.Figure()
                         fig = plot_3_1_pb(fig, all_increase_df, sorted_list)
                         fig = plot_3_2_pb(fig, result_3, sorted_list)
@@ -977,6 +995,8 @@ class DMP_RFP(DMP):
                         response = JsonResponse({       
                             'increase_10_total_spend_weight': increase_10_total_spend_weight,     
                             'plot_div_3_rfp': div_1,
+                            'df_to_html': result_3_html,
+                            
                                 })
                                 
                         add_get_params(response)
@@ -1129,6 +1149,12 @@ class DMP_RFP(DMP):
                     y_2 = [' ', '  ' , '   ', '    ', '     ']
             
                     delta, colors = get_delta_and_index(total_spends)
+                    
+                    
+                    result_3_for_visual= one_year_df_4[['Material/Service No.', 'PO No.', 'Manufacturer Part No.', 'PO Item Creation Date', 'Unit Price', '2020 rates','2021 rates','Converted Price' ,'New Demand', 'Average Price', 'Average Spend','Curren RFP Last Year Spend', 'Last Price of Last Year' ,'Last Year Last Price Spend',	'Lowest Price', 'Lowest Spend', 'Pricebook Last Year Spend', 'Product Category Description']]
+                    result_3_for_visual= result_3_for_visual.sort_values('Material/Service No.')
+                    result_3_html=result_3_for_visual.to_html(index=False) 
+
                 
                     fig = px.bar(x=total_spends, y= y_2, color = y_, color_discrete_map={'Proposed': 'rgb(144, 238, 144)', 'Average': '#add8e6', 'Last': '#fbc02d',  'Lowest': 'rgb(120, 200, 67)', 'Pricebook': '#FF7F7F',}, orientation = 'h',)
 
@@ -1141,6 +1167,8 @@ class DMP_RFP(DMP):
                     response = JsonResponse({            
                         'plot_div_4_rfp': div_1,
                         'rfp_percentage': round(rfp_percentage,2),
+                        'df_to_html': result_3_html,
+
                             })
                             
                     add_get_params(response)

@@ -15,15 +15,13 @@ class DMP_normalise(DMP):
                 if user_type == 'customer':
                     
                     with Session(engine) as session:
-                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id==user_id).first()
-    
-                        test_df = pd.json_normalize(json.loads(user_session_with_data.result_data_app_copy))
-                        result_data_all = pd.json_normalize( json.loads( user_session_with_data.result_data_all))                              
+                        user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id==user_id).first()                             
                         user_input_desc = user_session_with_data.user_input_desc     
                         all_headers = user_session_with_data.all_headers
 
-                    print("user_id: ", user_id)
-                    print("All_headers: ", all_headers)
+    
+                    test_df = pd.read_csv(str(BASE_DIR) + "/static/result_data_app_copy_om_" + str(user_id) + ".csv", error_bad_lines=False)
+                    result_data_all = pd.read_csv(str(BASE_DIR) + "/static/result_data_all_om_" + str(user_id) + ".csv",error_bad_lines=False)
                   
                     test_df['Converted Price'] = round(test_df['Converted Price'],2)
                     test_df = test_df[test_df['Unit Price'] != test_df['Converted Price']]
@@ -86,27 +84,23 @@ class DMP_normalise(DMP):
                 approve_list = request.POST.getlist('approve_list[]')
 
 
-                with Session(engine) as session:
-                    #  get user data with user session 
-                    
-                    user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id == user_id).first()
-                    
-                       
-                    result_data_app_copy_json = json.loads(user_session_with_data.result_data_app_copy)
-                  
-                    #get app_to_app data copy  which it is never changed   
-                    app = pd.json_normalize(result_data_app_copy_json)
-                    # app['PO Item Creation Date'] = pd.DatetimeIndex(app['PO Item Creation Date'])
-                  
-                    # changing unit price to new converted price one by one at copies data
-                    for index in approve_list:
-                        app.loc[app.index == int(index), 'Unit Price'] = app[app.index == int(index)]['Converted Price']
+      
+                #  get user data with user id  
+                
+                #get app_to_app data copy  which it is never changed   
+                app = pd.read_csv(str(BASE_DIR) + "/static/result_data_app_copy_om_" + str(user_id) + ".csv",)
+
+                # app['PO Item Creation Date'] = pd.DatetimeIndex(app['PO Item Creation Date'])
+                
+                # changing unit price to new converted price one by one at copies data
+                for index in approve_list:
+                    app.loc[app.index == int(index), 'Unit Price'] = app[app.index == int(index)]['Converted Price']
 
 
-                    # assign copies data to working data
-                    user_session_with_data.result_data_app = app.to_json(orient='records')
-                    session.commit()
-               
+                # assign copies data to working data
+                app.to_csv(str(BASE_DIR) + "/static/result_data_app_om_" + str(user_id) + ".csv", index = False)
+                
+                
 
                 response = JsonResponse({
                             'result_data_all':  'all',
@@ -137,27 +131,17 @@ class DMP_normalise(DMP):
             user_type = user_response['user_type']
             user_id = user_response['user_id']            
             if user_type == "customer":
-                
-                with Session(engine) as session:
-                    #  get user data with user session 
+            
+                #  get user data with user id
+                #get app_to_app data copy  which it is never changed   
+                app = pd.read_csv(str(BASE_DIR) + "/static/result_data_app_copy_om_" + str(user_id) + ".csv",)
 
-                    user_session_with_data = session.query(USER_SESSION_WITH_DATA).filter(USER_SESSION_WITH_DATA.user_id== user_id).first()
-                    
-                       
-                    result_data_app_copy_json = json.loads(user_session_with_data.result_data_app_copy)
-                  
-                    #get app_to_app data copy  which it is never changed   
-                    app = pd.json_normalize(result_data_app_copy_json)
-                    
-                    
-                    # app['PO Item Creation Date'] = pd.DatetimeIndex(app['PO Item Creation Date'])
-                    app['Unit Price'] = app['Converted Price']
-                  
+                # app['PO Item Creation Date'] = pd.DatetimeIndex(app['PO Item Creation Date'])
+                app['Unit Price'] = app['Converted Price']
 
-                    # assign copies data to working data
-                    user_session_with_data.result_data_app = app.to_json(orient='records')
-                    session.commit()
-                    
+                # assign copies data to working data
+                app.to_csv(str(BASE_DIR) + "/static/result_data_app_om_" + str(user_id) + ".csv", index = False)
+                                 
                 response = JsonResponse({
                             'Answer':  'All Unit Price ssuccessfully replaced to Converted Price in app to app',
                         })
